@@ -102,19 +102,5 @@ details[open]>summary .menu-chevron{transform:rotate(180deg)}
 .family-estuda-link{display:inline-block;padding:13px 20px;background:#126c62;color:white;border-radius:12px;text-decoration:none}
 
 .family-landing{max-width:1100px;margin:0 auto}.family-landing h1{margin-bottom:5px}.family-module-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:16px;margin:28px 0}.family-module{display:flex;flex-direction:column;align-items:flex-start;gap:12px;text-align:left;background:#fff;color:#173b35;border:1px solid #cbded8;border-radius:20px;padding:25px;min-height:145px;cursor:pointer}.family-module:hover{background:#e4f3ef;border-color:#126c62}.family-module strong{font-size:1.45rem}.family-module span{font-size:1rem;color:#526d66}.family-admin{padding:22px;border-radius:18px;background:#e6f1ee;margin-top:24px}.family-admin h3{margin-top:0}@media(max-width:600px){.family-module-grid{grid-template-columns:1fr 1fr;gap:10px}.family-module{padding:15px;min-height:130px}.family-module strong{font-size:1.1rem}.family-module span{font-size:.85rem}}
-/* Menu comum para regressar à Família+ e mudar de aplicação. */
-#tabs{position:relative;overflow:visible}
-.family-app-menu{position:relative;display:inline-block}
-.family-app-menu>summary{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:10px 16px;border:1px solid #badbd5;border-radius:12px;background:#fff;color:#126c62;font-weight:700;cursor:pointer;list-style:none;box-sizing:border-box}
-.family-app-menu>summary::-webkit-details-marker{display:none}
-.family-app-menu>summary:focus-visible{outline:3px solid #94cfc2;outline-offset:2px}
-.family-app-menu-list{position:absolute;z-index:50;right:0;top:calc(100% + 6px);width:max-content;min-width:200px;max-width:min(280px,85vw);display:flex;flex-direction:column;gap:4px;padding:8px;background:white;border:1px solid #d6e8e3;border-radius:14px;box-shadow:0 12px 30px #173d3526}
-.family-app-menu-list button{width:100%;text-align:left;margin:0;min-height:44px}
-.family-app-menu-list button[aria-current=page]{background:#e1f4ed}
-@media(max-width:650px){#tabs{display:flex;flex-wrap:wrap;gap:8px}.family-app-menu{margin-left:auto}.family-app-menu-list{right:0}}
 
-.lunch-kids{display:flex;flex-wrap:wrap;gap:.5rem 1rem}
-.lunch-kids label{display:flex;align-items:center;gap:.4rem}
-.lunch-kids input[type=checkbox]{width:auto;margin:0}
-#lunchManualForm fieldset{border:1px solid #bed2cb;border-radius:.6rem;margin:0 0 1rem;padding:.75rem}
-#lunchManualForm select{min-height:2.75rem}
+.lunch-edit{display:grid;gap:12px;margin-top:18px;padding:18px;border:1px solid #a6c8be;border-radius:14px;background:#f6fbf9}.lunch-edit label{display:grid;gap:5px}.lunch-edit fieldset,.lunch-form fieldset{border:1px solid #c8ded7;border-radius:10px;display:flex;gap:14px;flex-wrap:wrap}.lunch-edit fieldset label,.lunch-form fieldset label{display:flex;align-items:center;gap:6px}.lunch-edit input[type=number]{max-width:110px}
