@@ -8,17 +8,17 @@ export function setLunchChildren(kids){children=kids;}
 const save=()=>setDoc(doc(dbRef,'lunchSettings',uid),state);
 const weekdays=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
 function eligible(kid,category){return state.foods.filter(f=>f.category===category&&(!f.children?.length||f.children.includes(kid.uid)));}
-function build(weeks,weekend){
+function build(weeks,weekend,allowRepeat=false){
  const output=[], days=weekend?7:5;
  children.forEach((kid,offset)=>{
   const pool=(...categories)=>[...new Set(categories.flatMap(c=>eligible(kid,c).map(f=>f.name)))];
   const mains=pool('principal'), drinks=pool('bebida','laticinio','extra');
-  const produce=pool('fruta','vegetal'), sides=pool('laticinio','extra','bebida','principal');
+  const produce=pool('fruta','vegetal'), sides=pool('laticinio','extra','bebida');
   const take=(options,seed)=>options.length?options[seed%options.length]:'';
   let previousSide='';
   for(let i=0;i<weeks*days;i++){
    const seed=i+offset*3;
-   const main=take(mains,seed), drink=take(drinks.filter(f=>f!==main),seed);
+   const main=(allowRepeat||i%days<mains.length?take(mains,seed):''), drink=take(drinks.filter(f=>f!==main),seed);
    const fruit=take(produce,seed);
    const available=sides.filter(f=>f!==fruit&&f!==drink&&f!==main);
    const varied=available.filter(f=>f!==previousSide);
@@ -29,7 +29,7 @@ function build(weeks,weekend){
  });
  return output;
 }
-function manualLunchView(){return `<div class="card"><h3>Adicionar lanche</h3>${children.length?`<p>Seleciona vários filhos para guardar o mesmo lanche. Para lanches diferentes, guarda um de cada vez.</p>
+function manualLunchView(){return `<details class="card" id="lunchManual"><summary><strong>Adicionar ou editar lanche manualmente</strong></summary>${children.length?`<p>Seleciona vários filhos para guardar o mesmo lanche. Para lanches diferentes, guarda um de cada vez.</p>
 <form id="lunchManualForm">
 <fieldset><legend>Para quem?</legend><div class="lunch-kids">${children.map(k=>`<label><input type="checkbox" name="kids" value="${clean(k.uid)}" ${children.length===1?'checked':''}> ${clean(k.name)}</label>`).join('')}</div></fieldset>
 <div class="lunch-form"><label>Semana do plano<input type="number" name="week" min="1" max="8" value="1" required></label>
@@ -37,7 +37,7 @@ function manualLunchView(){return `<div class="card"><h3>Adicionar lanche</h3>${
 <label>Turno<select name="period"><option value="morning">Manhã</option><option value="afternoon">Tarde</option></select></label>
 <label>Alimentos (separados por vírgulas)<input name="foods" maxlength="500" required placeholder="Ex.: Pão com queijo, pera"></label>
 <button>Guardar lanche</button></div></form>`:'<p>Ainda não tens filhos ativos associados.</p>'}
-<button type="button" class="alt" data-go="pessoas">Gerir filhos em Pessoas</button></div>`;}
+<button type="button" class="alt" data-go="pessoas">Gerir filhos em Pessoas</button></details>`;}
 async function saveManualLunch(fd){
  const kids=children.filter(k=>fd.getAll('kids').includes(k.uid));
  const week=Number(fd.get('week')), day=Number(fd.get('day')), period=fd.get('period');
@@ -66,16 +66,26 @@ function plansByChild(){
   if(!groups.has(key))groups.set(key,[]);
   groups.get(key).push(row);
  }
- return [...groups.values()].map(rows=>`<div class="lunch-child-plan"><h4>${clean(children.find(k=>k.uid===rows[0].kidId)?.name||rows[0].kidName)}</h4><div class="lunch-table-wrap"><table class="lunch-table"><thead><tr><th>Semana</th><th>Dia</th><th>Manhã</th><th>Tarde</th></tr></thead><tbody>${rows.map(p=>`<tr><td>${p.week}</td><td>${weekdays[p.day]}</td><td>${clean(p.morning.join(' + '))}</td><td>${clean(p.afternoon.join(' + '))}</td></tr>`).join('')}</tbody></table></div></div>`).join('');
+ return [...groups.values()].map(rows=>`<div class="lunch-child-plan"><h4>${clean(children.find(k=>k.uid===rows[0].kidId)?.name||rows[0].kidName)}</h4><div class="lunch-table-wrap"><table class="lunch-table"><thead><tr><th>Semana</th><th>Dia</th><th>Manhã</th><th>Tarde</th></tr></thead><tbody>${rows.map(p=>`<tr><td>${p.week}</td><td>${weekdays[p.day]}</td><td>${clean(p.morning.join(' + '))} ${children.some(k=>k.uid===p.kidId)?`<button type="button" class="alt" data-plan-edit="${state.plans.indexOf(p)}" data-period="morning" aria-label="Editar lanche da manhã">Editar</button>`:''}</td><td>${clean(p.afternoon.join(' + '))} ${children.some(k=>k.uid===p.kidId)?`<button type="button" class="alt" data-plan-edit="${state.plans.indexOf(p)}" data-period="afternoon" aria-label="Editar lanche da tarde">Editar</button>`:''}</td></tr>`).join('')}</tbody></table></div></div>`).join('');
 }
-export function lanchesView(){return `<section class="lunch-module"><h2>🥪 Lanches+</h2><p class="muted">Organiza os lanches da manhã e da tarde para cada filho. Os dados são privados da tua conta.</p>${manualLunchView()}<details class="card"><summary><strong>Biblioteca de alimentos (${state.foods.length})</strong></summary><form id="lunchFoodForm" class="lunch-form"><label>Alimento<input name="name" maxlength="80" required placeholder="Ex.: Pão com queijo"></label><label>Categoria<select name="category">${[['principal','Principal'],['fruta','Fruta'],['bebida','Bebida'],['laticinio','Laticínio'],['vegetal','Vegetal'],['extra','Complemento']].map(([v,n])=>`<option value="${v}">${n}</option>`).join('')}</select></label><label>Preferência<select name="kid"><option value="">Todos os filhos</option>${children.map(k=>`<option value="${clean(k.uid)}">${clean(k.name)}</option>`).join('')}</select></label><button>Adicionar alimento</button><button type="button" class="alt" data-lunch-cancel hidden>Cancelar</button></form><div class="lunch-foods">${state.foods.map((f,i)=>`<span class="lunch-chip">${clean(f.name)} <small>· ${clean(f.category)}${f.children?.length?' · '+clean(children.find(k=>k.uid===f.children[0])?.name||'Filho'):''}</small> <button type="button" data-lunch-edit="${i}" aria-label="Editar ${clean(f.name)}">✎</button> <button type="button" data-lunch-remove="${i}" aria-label="Remover ${clean(f.name)}">×</button></span>`).join('')}</div></details><div class="card"><h3>Gerar plano</h3><form id="lunchGenerateForm" class="lunch-form"><label>Semanas<select name="weeks">${[1,2,4,8].map(n=>`<option value="${n}" ${n===4?'selected':''}>${n}</option>`).join('')}</select></label><label><input type="checkbox" name="weekend"> Incluir fins de semana</label><button ${!children.length?'disabled':''}>Gerar lanches</button></form>${!children.length?'<p>Adiciona primeiro um filho à família.</p>':''}</div>${state.plans.length?`<div class="card"><div class="lunch-heading"><h3>Plano guardado</h3><button type="button" class="alt" data-lunch-print>Imprimir</button><button type="button" class="alt" data-lunch-clear>Apagar plano</button></div>${plansByChild()}<h3>Lista de compras (quantidades por porção)</h3><div class="lunch-foods">${Object.entries(state.plans.flatMap(p=>[...p.morning,...p.afternoon]).reduce((a,f)=>(a[f]=(a[f]||0)+1,a),{})).sort((a,b)=>a[0].localeCompare(b[0],'pt')).map(([f,n])=>`<span class="lunch-chip">${clean(f)} × ${n}</span>`).join('')}</div></div>`:''}</section>`;}
+export function lanchesView(){return `<section class="lunch-module"><h2>🥪 Lanches+</h2><p class="muted">Organiza os lanches da manhã e da tarde para cada filho. Os dados são privados da tua conta.</p>${manualLunchView()}<details class="card"><summary><strong>Biblioteca de alimentos (${state.foods.length})</strong></summary><form id="lunchFoodForm" class="lunch-form"><label>Alimento<input name="name" maxlength="80" required placeholder="Ex.: Pão com queijo"></label><label>Categoria<select name="category">${[['principal','Principal'],['fruta','Fruta'],['bebida','Bebida'],['laticinio','Laticínio'],['vegetal','Vegetal'],['extra','Complemento']].map(([v,n])=>`<option value="${v}">${n}</option>`).join('')}</select></label><label>Preferência<select name="kid"><option value="">Todos os filhos</option>${children.map(k=>`<option value="${clean(k.uid)}">${clean(k.name)}</option>`).join('')}</select></label><button>Adicionar alimento</button><button type="button" class="alt" data-lunch-cancel hidden>Cancelar</button></form><div class="lunch-foods">${state.foods.map((f,i)=>`<span class="lunch-chip">${clean(f.name)} <small>· ${clean(f.category)}${f.children?.length?' · '+clean(children.find(k=>k.uid===f.children[0])?.name||'Filho'):''}</small> <button type="button" data-lunch-edit="${i}" aria-label="Editar ${clean(f.name)}">✎</button> <button type="button" data-lunch-remove="${i}" aria-label="Remover ${clean(f.name)}">×</button></span>`).join('')}</div></details><div class="card"><h3>Gerar plano</h3><form id="lunchGenerateForm" class="lunch-form"><label>Semanas<select name="weeks">${[1,2,4,8].map(n=>`<option value="${n}" ${n===4?'selected':''}>${n}</option>`).join('')}</select></label><label><input type="checkbox" name="weekend"> Incluir fins de semana</label><label style="display:flex;align-items:center"><input type="checkbox" name="repeat"> Permitir repetir o principal se faltarem opções</label><button ${!children.length?'disabled':''}>Gerar lanches</button></form>${!children.length?'<p>Adiciona primeiro um filho à família.</p>':''}</div>${state.plans.length?`<div class="card"><div class="lunch-heading"><h3>Plano guardado</h3><button type="button" class="alt" data-lunch-print>Imprimir</button><button type="button" class="alt" data-lunch-clear>Apagar plano</button></div>${plansByChild()}<h3>Lista de compras (quantidades por porção)</h3><div class="lunch-foods">${Object.entries(state.plans.flatMap(p=>[...p.morning,...p.afternoon]).reduce((a,f)=>(a[f]=(a[f]||0)+1,a),{})).sort((a,b)=>a[0].localeCompare(b[0],'pt')).map(([f,n])=>`<span class="lunch-chip">${clean(f)} × ${n}</span>`).join('')}</div></div>`:''}</section>`;}
 export async function lunchSubmit(e,render){if(e.target.id==='lunchManualForm'){e.preventDefault();const button=e.submitter;if(button)button.disabled=true;try{if(await saveManualLunch(new FormData(e.target))){render();notify('Lanche guardado.');}}finally{if(button)button.disabled=false;}}else if(e.target.id==='lunchFoodForm'){e.preventDefault();const fd=new FormData(e.target),name=String(fd.get('name')||'').trim();if(!name)return;const form=e.target, editing=form.dataset.edit!==undefined, i=Number(form.dataset.edit);
  const foods=state.foods.slice(), food={name,category:String(fd.get('category')),children:fd.get('kid')?[String(fd.get('kid'))]:[]};
  if(editing){if(!foods[i])return;foods[i]={...foods[i],...food};}else foods.push(food);
  await setDoc(doc(dbRef,'lunchSettings',uid),{...state,foods});state.foods=foods;
  render();document.getElementById('lunchFoodForm').closest('details').open=true;
- notify(editing?'Alimento atualizado.':'Alimento adicionado.');}else if(e.target.id==='lunchGenerateForm'){e.preventDefault();if(!children.length)return;const fd=new FormData(e.target);if(state.plans.length&&!confirm('Substituir o plano anterior?'))return;state.plans=build(Math.min(8,Math.max(1,Number(fd.get('weeks'))||4)),fd.has('weekend'));await save();render();notify('Plano e lista de compras guardados.');}}
+ notify(editing?'Alimento atualizado.':'Alimento adicionado.');}else if(e.target.id==='lunchGenerateForm'){e.preventDefault();if(!children.length)return;const fd=new FormData(e.target);if(state.plans.length&&!confirm('Substituir o plano anterior?'))return;state.plans=build(Math.min(8,Math.max(1,Number(fd.get('weeks'))||4)),fd.has('weekend'),fd.has('repeat'));await save();render();notify(!fd.has('repeat')&&children.some(k=>new Set(eligible(k,'principal').map(f=>f.name)).size<(fd.has('weekend')?7:5))?'Plano guardado. Alguns dias ficaram sem principal por falta de opções diferentes.':'Plano e lista de compras guardados.');}}
 export async function lunchClick(e,render){
+ const editPlan=e.target.closest('[data-plan-edit]');
+ if(editPlan){
+  const row=state.plans[Number(editPlan.dataset.planEdit)], period=editPlan.dataset.period;
+  const form=document.getElementById('lunchManualForm');
+  if(!row||!form||!['morning','afternoon'].includes(period))return;
+  document.getElementById('lunchManual').open=true;
+  form.querySelectorAll('[name="kids"]').forEach(box=>box.checked=box.value===row.kidId);
+  for(const [name,value] of Object.entries({week:row.week,day:row.day,period,foods:row[period].join(', ')}))form.elements.namedItem(name).value=value;
+  form.elements.namedItem('foods').focus();return;
+ }
  const clear=e.target.closest('[data-lunch-clear]');
  if(clear){
   if(!confirm('Apagar o plano de todos os filhos? A biblioteca de alimentos será mantida.'))return;
