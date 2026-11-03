@@ -171,3 +171,8 @@ details[open]>summary .menu-chevron{transform:rotate(180deg)}
 #lunchFoodForm{align-items:end}
 #lunchFoodForm > label{margin:0;min-width:0}
 #lunchFoodForm > label > :is(input,select),#lunchFoodForm > button{height:46px;box-sizing:border-box;margin:0}
+#lunchManual[hidden]{display:none}
+.lunch-plan-cell{display:flex;align-items:center;gap:.65rem}
+.lunch-plan-cell span{min-width:0;overflow-wrap:anywhere}
+.lunch-plan-cell button{margin:0 0 0 auto;flex:none}
+@media print{.lunch-plan-cell button,#lunchManual{display:none}}
