@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" role="img" aria-label="Escola">
+ <rect width="320" height="200" rx="22" fill="#fce6da"/><circle cx="285" cy="28" r="43" fill="#fff" opacity=".4"/><circle cx="28" cy="170" r="60" fill="#fff" opacity=".3"/>
+ <ellipse cx="118" cy="190" rx="85" ry="17" fill="#78b6a9" opacity=".22"/>
+ <path d="M62 171 Q64 125 114 126 Q165 125 168 171 L168 201 L62 201Z" fill="#65a7d4"/>
+ <path d="M69 150 L47 180 M162 150 L183 178" fill="none" stroke="#f0b789" stroke-width="18" stroke-linecap="round"/>
+ <rect x="103" y="111" width="23" height="27" rx="10" fill="#efb98d"/>
+ <ellipse cx="114" cy="81" rx="48" ry="52" fill="#f5c69d"/>
+ <path d="M67 76 Q54 31 87 30 Q100 8 128 25 Q162 18 162 65 L157 80 Q151 52 135 49 Q111 70 83 53 Q79 67 67 76Z" fill="#714a38"/>
+ <circle cx="96" cy="87" r="4.7" fill="#393432"/><circle cx="132" cy="87" r="4.7" fill="#393432"/>
+ <path d="M104 108 Q114 118 125 107" stroke="#b76c60" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+ <circle cx="80" cy="101" r="7" fill="#ed9c93" opacity=".55"/><circle cx="148" cy="101" r="7" fill="#ed9c93" opacity=".55"/>
+ <rect x="190" y="47" width="108" height="108" rx="28" fill="#fff" opacity=".85"/>
+ <text x="244" y="124" font-size="67" text-anchor="middle" font-family="Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif">🎒</text>
+ </svg>

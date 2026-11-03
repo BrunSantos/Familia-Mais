@@ -1,0 +1,23 @@
+{
+  "name": "Estuda+ — Fichas interativas",
+  "short_name": "Estuda+",
+  "description": "Fichas interativas do 1.º ao 12.º ano",
+  "lang": "pt-PT",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#edf4fc",
+  "theme_color": "#193e70",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

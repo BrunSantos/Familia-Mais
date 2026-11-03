@@ -1,0 +1,196 @@
+rules_version = '2';
+service cloud.firestore {
+ match /databases/{database}/documents {
+  function signed() { return request.auth != null; }
+  function admin() { return signed() && request.auth.uid == 'mcS8mHznpaQm5qSk0mXEbfuiBWH3'; }
+  function own(uid) { return signed() && request.auth.uid == uid; }
+  function profile(uid) { return get(/databases/$(database)/documents/profiles/$(uid)).data; }
+  function activeChild(uid) { return exists(/databases/$(database)/documents/profiles/$(uid)) && profile(uid).role == 'child' && profile(uid).status == 'active'; }
+  function guardianOf(uid) { return signed() && activeChild(uid) && request.auth.uid in profile(uid).guardianIds && exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) && profile(request.auth.uid).role == 'guardian' && profile(request.auth.uid).status == 'active'; }
+  function adultFor(uid) { return admin() || guardianOf(uid); }
+  function invited() { return signed() && request.auth.token.email != null && exists(/databases/$(database)/documents/invitations/$(request.auth.token.email)); }
+  match /invitations/{address} {
+   allow read: if admin() || (signed() && request.auth.token.email == address);
+   allow create: if admin() || (signed() && exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) && profile(request.auth.uid).role == 'guardian' && profile(request.auth.uid).status == 'active' && request.resource.data.role == 'child' && request.resource.data.guardianIds == [request.auth.uid] && request.resource.data.createdBy == request.auth.uid && request.resource.data.email == address && request.resource.data.keys().hasOnly(['name','email','role','guardianIds','createdBy','createdAt']) && request.resource.data.createdAt == request.time);
+   allow update, delete: if admin();
+  }
+  match /profiles/{uid} {
+   allow get: if admin() || own(uid) || guardianOf(uid);
+   allow list: if admin() || (signed() && resource.data.role == 'child' && request.auth.uid in resource.data.guardianIds);
+   allow create: if admin() || (signed() && !own(uid)
+     && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+     && profile(request.auth.uid).role == 'guardian' && profile(request.auth.uid).status == 'active'
+     && request.resource.data.keys().hasOnly(['name','role','status','guardianIds','schoolYear','accountType','createdBy','createdAt'])
+     && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100
+     && request.resource.data.role == 'child' && request.resource.data.status == 'active'
+     && request.resource.data.accountType == 'managed' && request.resource.data.createdBy == request.auth.uid
+     && request.resource.data.guardianIds == [request.auth.uid]
+     && request.resource.data.schoolYear is string && request.resource.data.createdAt == request.time)
+     || (own(uid) && invited()
+     && request.resource.data.keys().hasOnly(['name','email','role','status','guardianIds','balance','createdAt'])
+     && request.resource.data.email == request.auth.token.email
+     && request.resource.data.name == get(/databases/$(database)/documents/invitations/$(request.auth.token.email)).data.name
+     && request.resource.data.role == get(/databases/$(database)/documents/invitations/$(request.auth.token.email)).data.role
+     && request.resource.data.guardianIds == get(/databases/$(database)/documents/invitations/$(request.auth.token.email)).data.guardianIds
+     && request.resource.data.status == 'pending' && request.resource.data.balance == 0);
+   allow update: if admin() || (signed() && resource.data.role == 'child' && resource.data.status == 'pending' && request.auth.uid in resource.data.guardianIds && exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) && profile(request.auth.uid).status == 'active' && profile(request.auth.uid).role == 'guardian' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','approvedBy','approvedAt']) && request.resource.data.status == 'active' && request.resource.data.approvedBy == request.auth.uid && request.resource.data.approvedAt == request.time) || (guardianOf(uid) && resource.data.role == 'child' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','schoolYear','guardianIds']) && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100 && request.resource.data.get('schoolYear','') is string && request.resource.data.get('schoolYear','').size() <= 40 && (request.resource.data.guardianIds == resource.data.guardianIds || (resource.data.get('accountType','') == 'managed' && request.resource.data.guardianIds == resource.data.guardianIds.removeAll([request.auth.uid])))) || (guardianOf(uid) && resource.data.role == 'child' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photoData','photoPath']) && (!('photoData' in request.resource.data) || (request.resource.data.photoData is string && request.resource.data.photoData.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$') && request.resource.data.photoData.size() <= 100000)) && !('photoPath' in request.resource.data));
+   allow delete: if admin();
+  }
+   // Horários personalizados da v35: apenas sete dias e horas válidas.
+   function validClock(value) {
+     return value is string && (value == '' || value.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$'));
+   }
+   function validDaySchedule(day) {
+     return day is map && day.keys().hasOnly(['start','end','period'])
+       && day.keys().hasAll(['start','end','period'])
+       && validClock(day.start) && validClock(day.end)
+       && day.period in ['Manhã','Tarde','Noite']
+       && (day.start == '' || day.end == '' || day.end > day.start);
+   }
+   function validDaySchedules(days) {
+     return days is map && days.keys().hasOnly(['0','1','2','3','4','5','6'])
+       && (!('0' in days) || validDaySchedule(days['0']))
+       && (!('1' in days) || validDaySchedule(days['1']))
+       && (!('2' in days) || validDaySchedule(days['2']))
+       && (!('3' in days) || validDaySchedule(days['3']))
+       && (!('4' in days) || validDaySchedule(days['4']))
+       && (!('5' in days) || validDaySchedule(days['5']))
+       && (!('6' in days) || validDaySchedule(days['6']));
+   }
+   function validCustomSchedule(data) {
+     return data.customSchedule is bool && validClock(data.scheduleEnd)
+       && validDaySchedules(data.daySchedules)
+       && (data.customSchedule || data.daySchedules.size() == 0);
+   }
+  match /tasks/{id} {
+   allow get, list: if admin() || (signed() && (own(resource.data.childId) || guardianOf(resource.data.childId)));
+   allow create: if adultFor(request.resource.data.childId) && activeChild(request.resource.data.childId)
+     && request.resource.data.keys().hasOnly(['title','description','category','period','taskTime','approvalMode','points','frequency','weekdays','deadline','childId','active','createdBy','createdAt','scheduleEnd','customSchedule','daySchedules','imageKey'])
+     && request.resource.data.active == true
+     && request.resource.data.createdBy == request.auth.uid
+     && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 120
+     && request.resource.data.description is string && request.resource.data.description.size() <= 600
+     && request.resource.data.category in ['Responsabilidade','Tarefa doméstica']
+     && request.resource.data.period in ['Manhã','Tarde','Depois da escola','Noite','Outro']
+     && request.resource.data.taskTime is string && (request.resource.data.taskTime == '' || request.resource.data.taskTime.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$'))
+     && request.resource.data.get('imageKey','auto') in ['auto','geral','dentes','vestir','refeicao','cama','banho','escola','arrumar']
+     && validCustomSchedule(request.resource.data)
+     && request.resource.data.approvalMode in ['approval','automatic','parent']
+     && request.resource.data.points is int && request.resource.data.points >= 1 && request.resource.data.points <= 500
+     && request.resource.data.frequency in ['daily','weekly','once']
+     && request.resource.data.weekdays is list && request.resource.data.weekdays.size() <= 7
+     && (request.resource.data.frequency != 'daily' || request.resource.data.weekdays.size() > 0)
+     && request.resource.data.weekdays.hasOnly([0,1,2,3,4,5,6])
+     && request.resource.data.deadline is string && request.resource.data.createdAt == request.time;
+   allow update: if adultFor(resource.data.childId) && (
+     (resource.data.get('deleted',false) == false
+      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title','description','category','period','taskTime','approvalMode','points','frequency','weekdays','deadline','scheduleEnd','customSchedule','daySchedules','imageKey'])
+      && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 120
+      && request.resource.data.description is string && request.resource.data.description.size() <= 600
+      && request.resource.data.category in ['Responsabilidade','Tarefa doméstica']
+      && request.resource.data.period in ['Manhã','Tarde','Noite','Depois da escola','Outro']
+      && request.resource.data.taskTime is string && (request.resource.data.taskTime == '' || request.resource.data.taskTime.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$'))
+      && request.resource.data.get('imageKey','auto') in ['auto','geral','dentes','vestir','refeicao','cama','banho','escola','arrumar']
+     && validCustomSchedule(request.resource.data)
+     && request.resource.data.approvalMode in ['approval','automatic','parent']
+      && request.resource.data.points is int && request.resource.data.points >= 1 && request.resource.data.points <= 500
+      && request.resource.data.frequency in ['daily','weekly','once']
+      && request.resource.data.weekdays is list && request.resource.data.weekdays.size() <= 7
+      && request.resource.data.weekdays.hasOnly([0,1,2,3,4,5,6])
+      && (request.resource.data.frequency != 'daily' || request.resource.data.weekdays.size() > 0)
+      && request.resource.data.deadline is string)
+     ||
+     (resource.data.get('deleted',false) == false
+      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active'])
+      && request.resource.data.active is bool
+      && request.resource.data.active != resource.data.active)
+     || (resource.data.get('deleted',false) == false
+      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active','deleted'])
+      && request.resource.data.deleted == true
+      && request.resource.data.active == false)
+   );
+   allow delete: if false;
+  }
+  match /claims/{id} {
+   allow get, list: if admin() || (signed() && (own(resource.data.childId) || guardianOf(resource.data.childId)));
+   allow create: if signed()
+     && (own(request.resource.data.childId) || adultFor(request.resource.data.childId))
+     && activeChild(request.resource.data.childId)
+     && request.resource.data.keys().hasOnly(['taskId','childId','periodKey','periodStart','points','status','submittedAt','reviewedBy','reviewedAt'])
+     && exists(/databases/$(database)/documents/tasks/$(request.resource.data.taskId))
+     && get(/databases/$(database)/documents/tasks/$(request.resource.data.taskId)).data.childId == request.resource.data.childId
+     && get(/databases/$(database)/documents/tasks/$(request.resource.data.taskId)).data.get('active',true) == true
+     && get(/databases/$(database)/documents/tasks/$(request.resource.data.taskId)).data.get('deleted',false) == false
+     && request.resource.data.points == get(/databases/$(database)/documents/tasks/$(request.resource.data.taskId)).data.points
+     && request.resource.data.submittedAt == request.time
+     && id == request.resource.data.taskId + '_' + request.resource.data.childId + '_' + request.resource.data.periodKey
+     && validPeriod(request.resource.data.periodKey, request.resource.data.periodStart, get(/databases/$(database)/documents/tasks/$(request.resource.data.taskId)).data.frequency)
+     && (
+       (own(request.resource.data.childId)
+         && get(/databases/$(database)/documents/tasks/$(request.resource.data.taskId)).data.get('approvalMode','approval') != 'parent'
+         && request.resource.data.status == (get(/databases/$(database)/documents/tasks/$(request.resource.data.taskId)).data.get('approvalMode','approval') == 'automatic' ? 'approved' : 'pending')
+         && !('reviewedBy' in request.resource.data) && !('reviewedAt' in request.resource.data))
+       || (adultFor(request.resource.data.childId) && request.resource.data.status == 'approved'
+         && request.resource.data.reviewedBy == request.auth.uid && request.resource.data.reviewedAt == request.time)
+     );
+   allow update: if (adultFor(resource.data.childId) && resource.data.status == 'pending'
+     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewedBy','reviewedAt'])
+     && request.resource.data.status in ['approved','rejected']
+     && request.resource.data.reviewedBy == request.auth.uid && request.resource.data.reviewedAt == request.time)
+     || (adultFor(resource.data.childId) && resource.data.status == 'rejected' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewedBy','reviewedAt']) && request.resource.data.status == 'approved' && request.resource.data.reviewedBy == request.auth.uid && request.resource.data.reviewedAt == request.time)
+     || (own(resource.data.childId) && resource.data.status == 'rejected'
+       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','submittedAt'])
+       && request.resource.data.status == (get(/databases/$(database)/documents/tasks/$(resource.data.taskId)).data.get('approvalMode','approval') == 'automatic' ? 'approved' : 'pending')
+       && get(/databases/$(database)/documents/tasks/$(resource.data.taskId)).data.get('approvalMode','approval') != 'parent'
+       && request.resource.data.submittedAt == request.time
+       && validPeriod(resource.data.periodKey, resource.data.periodStart, get(/databases/$(database)/documents/tasks/$(resource.data.taskId)).data.frequency));
+   allow delete: if false;
+  }
+  function validPeriod(key,start,freq) {
+   return (freq == 'once' && key == 'once' && start == null)
+    || (freq == 'daily' && start is timestamp && key is string && key.size() == 10
+      && request.time >= start && request.time < start + duration.value(1,'d'))
+    || (freq == 'weekly' && start is timestamp && key is string && key.size() == 10
+      && request.time >= start && request.time < start + duration.value(7,'d'));
+  }
+
+  match /rewards/{id} {
+   allow get, list: if admin() || (signed() && (own(resource.data.childId) || guardianOf(resource.data.childId)));
+   allow create: if adultFor(request.resource.data.childId) && activeChild(request.resource.data.childId)
+    && request.resource.data.keys().hasOnly(['title','description','cost','childId','active','createdBy','createdAt'])
+    && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 120
+    && request.resource.data.description is string && request.resource.data.description.size() <= 500
+    && request.resource.data.cost is int && request.resource.data.cost >= 1 && request.resource.data.cost <= 100000
+    && request.resource.data.active == true && request.resource.data.createdBy == request.auth.uid
+    && request.resource.data.createdAt == request.time;
+   allow update: if adultFor(resource.data.childId) && resource.data.active == true
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active'])
+    && request.resource.data.active == false;
+   allow delete: if false;
+  }
+  match /redemptions/{id} {
+   allow get, list: if admin() || (signed() && (own(resource.data.childId) || guardianOf(resource.data.childId)));
+   allow create: if signed() && own(request.resource.data.childId) && activeChild(request.auth.uid)
+    && request.resource.data.keys().hasOnly(['rewardId','childId','title','cost','status','requestedAt'])
+    && exists(/databases/$(database)/documents/rewards/$(request.resource.data.rewardId))
+    && get(/databases/$(database)/documents/rewards/$(request.resource.data.rewardId)).data.childId == request.auth.uid
+    && get(/databases/$(database)/documents/rewards/$(request.resource.data.rewardId)).data.active == true
+    && request.resource.data.title == get(/databases/$(database)/documents/rewards/$(request.resource.data.rewardId)).data.title
+    && request.resource.data.cost == get(/databases/$(database)/documents/rewards/$(request.resource.data.rewardId)).data.cost
+    && request.resource.data.status == 'pending' && request.resource.data.requestedAt == request.time;
+   allow update: if adultFor(resource.data.childId) && resource.data.status == 'pending'
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','reviewedBy','reviewedAt'])
+    && request.resource.data.status in ['approved','rejected']
+    && request.resource.data.reviewedBy == request.auth.uid && request.resource.data.reviewedAt == request.time;
+   allow delete: if false;
+  }
+  match /lunchSettings/{ownerId} {
+   function lunchOwner() { return signed() && request.auth.uid == ownerId && (admin() || (get(/databases/$(database)/documents/profiles/$(ownerId)).data.role == 'guardian' && get(/databases/$(database)/documents/profiles/$(ownerId)).data.status == 'active')); }
+   allow get: if lunchOwner();
+   allow list: if false;
+   allow create, update: if lunchOwner() && request.resource.data.keys().hasOnly(['foods','plans']) && request.resource.data.foods is list && request.resource.data.foods.size() <= 150 && request.resource.data.plans is list && request.resource.data.plans.size() <= 600;
+   allow delete: if false;
+  }
+  match /{document=**} { allow read, write: if false; }
+ }
+}

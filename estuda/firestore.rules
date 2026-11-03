@@ -1,0 +1,121 @@
+rules_version = '2';
+service cloud.firestore {
+ match /databases/{database}/documents {
+  function signedIn() { return request.auth != null; }
+  function owner(uid) { return signedIn() && request.auth.uid == uid; }
+  function guardian(uid) { return signedIn() && exists(/databases/$(database)/documents/users/$(uid)/guardians/$(request.auth.uid)); }
+  function isAdmin() { return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.enabled == true; }
+  function grade(y) { return y == 'Pré-Escolar' ? 0 : y == '1.º ano' ? 1 : y == '2.º ano' ? 2 : y == '3.º ano' ? 3 : y == '4.º ano' ? 4 : y == '5.º ano' ? 5 : y == '6.º ano' ? 6 : y == '7.º ano' ? 7 : y == '8.º ano' ? 8 : y == '9.º ano' ? 9 : y == '10.º ano' ? 10 : y == '11.º ano' ? 11 : y == '12.º ano' ? 12 : -1; }
+  function fileGrade(p) { return p.matches('^.*/pre-escolar/[^/]+$') ? 0 : p.matches('^.*/1ano/[^/]+$') ? 1 : p.matches('^.*/2ano/[^/]+$') ? 2 : p.matches('^.*/3ano/[^/]+$') ? 3 : p.matches('^.*/4ano/[^/]+$') ? 4 : p.matches('^.*/5ano/[^/]+$') ? 5 : p.matches('^.*/6ano/[^/]+$') ? 6 : p.matches('^.*/7ano/[^/]+$') ? 7 : p.matches('^.*/8ano/[^/]+$') ? 8 : p.matches('^.*/9ano/[^/]+$') ? 9 : p.matches('^.*/10ano/[^/]+$') ? 10 : p.matches('^.*/11ano/[^/]+$') ? 11 : p.matches('^.*/12ano/[^/]+$') ? 12 : -1; }
+  function permittedFile(uid,p) { return p is string && grade(get(/databases/$(database)/documents/users/$(uid)).data.get('schoolYear','')) >= 0 && fileGrade(p) >= grade(get(/databases/$(database)/documents/users/$(uid)).data.get('schoolYear','')); }
+  function validName(n) { return n is string && n.size() >= 2 && n.size() <= 32; }
+  match /users/{uid} {
+   allow get: if owner(uid) || guardian(uid) || isAdmin();
+   allow list: if isAdmin();
+   allow create: if owner(uid) && request.resource.data.keys().hasOnly(['name','avatar','rankingOptIn','completed','points','createdAt','schoolYear','role'])
+      && validName(request.resource.data.name) && request.resource.data.schoolYear is string && (request.resource.data.get('role','student') == 'guardian' && request.resource.data.schoolYear == '' || request.resource.data.get('role','student') == 'student' && grade(request.resource.data.schoolYear) >= 0) && request.resource.data.rankingOptIn == false
+      && request.resource.data.completed == 0 && request.resource.data.points == 0;
+   allow update: if (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['schoolYear']) && grade(request.resource.data.schoolYear) >= 0)
+     || (owner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avatar','rankingOptIn','completed','points'])
+      && request.resource.data.get('schoolYear','') == resource.data.get('schoolYear','')
+      && request.resource.data.name == resource.data.name
+      && request.resource.data.completed in [resource.data.completed, resource.data.completed + 1]
+      && request.resource.data.get('points',0) is int
+      && request.resource.data.get('points',0) >= resource.data.get('points',0)
+      && request.resource.data.get('points',0) <= resource.data.get('points',0) + 500
+      && request.resource.data.rankingOptIn is bool);
+   allow delete: if false;
+   match /requests/{guardianUid} {
+    allow get: if owner(uid) || (signedIn() && request.auth.uid == guardianUid);
+    allow list: if owner(uid);
+    allow create: if signedIn() && request.auth.uid == guardianUid && guardianUid != uid
+      && get(/databases/$(database)/documents/users/$(guardianUid)).data.get('role','student') == 'guardian'
+      && request.resource.data.keys().hasOnly(['guardianName','createdAt'])
+      && validName(request.resource.data.guardianName)
+      && request.resource.data.createdAt == request.time;
+    allow delete: if owner(uid);
+    allow update: if false;
+   }
+   match /children/{studentUid} {
+    allow get: if owner(uid) || (signedIn() && request.auth.uid == studentUid
+      && exists(/databases/$(database)/documents/users/$(studentUid)/guardians/$(uid)));
+    allow list: if owner(uid);
+    allow create: if signedIn() && request.auth.uid == studentUid
+      && get(/databases/$(database)/documents/users/$(uid)).data.get('role','student') == 'guardian'
+      && existsAfter(/databases/$(database)/documents/users/$(studentUid)/guardians/$(uid))
+      && request.resource.data.keys().hasOnly(['createdAt']) && request.resource.data.createdAt == request.time;
+    allow delete: if owner(uid) || (signedIn() && request.auth.uid == studentUid);
+    allow update: if false;
+   }
+   match /guardians/{guardianUid} {
+    allow get: if owner(uid) || (signedIn() && request.auth.uid == guardianUid);
+    allow list: if owner(uid);
+    allow create: if owner(uid) && guardianUid != uid
+      && get(/databases/$(database)/documents/users/$(guardianUid)).data.get('role','student') == 'guardian'
+      && request.resource.data.keys().hasOnly(['createdAt'])
+      && request.resource.data.createdAt == request.time;
+    allow delete: if owner(uid);
+    allow update: if false;
+   }
+   match /daily/{entryId} {
+    allow get, list: if owner(uid);
+    allow create: if owner(uid) && entryId.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9a-f]+$')
+      && request.resource.data.keys().hasOnly(['file','day','points','createdAt'])
+      && request.resource.data.file is string && request.resource.data.day is string
+      && request.resource.data.points is int && request.resource.data.points >= 10 && request.resource.data.points <= 500
+      && request.resource.data.createdAt == request.time
+      && permittedFile(uid,request.resource.data.file);
+    allow update, delete: if false;
+   }
+   match /best/{quizId} {
+    allow get, list: if owner(uid);
+    allow create, update: if owner(uid)
+      && request.resource.data.keys().hasOnly(['file','points','correct','total','percent'])
+      && request.resource.data.file is string && permittedFile(uid,request.resource.data.file)
+      && request.resource.data.points is int && request.resource.data.points >= 10 && request.resource.data.points <= 500
+      && request.resource.data.correct is int && request.resource.data.total is int
+      && request.resource.data.total >= 1 && request.resource.data.total <= 100
+      && request.resource.data.correct >= 0 && request.resource.data.correct <= request.resource.data.total
+      && request.resource.data.percent is int && request.resource.data.percent >= 0 && request.resource.data.percent <= 100
+      && (!exists(/databases/$(database)/documents/users/$(uid)/best/$(quizId)) || request.resource.data.points > resource.data.points);
+    allow delete: if false;
+   }
+   match /history/{entryId} {
+    allow get, list: if owner(uid) || guardian(uid);
+    allow create: if owner(uid) && request.resource.data.keys().hasOnly(['date','year','subject','title','score','seconds','duration','file'])
+      && permittedFile(uid,request.resource.data.file)
+      && request.resource.data.date is string && request.resource.data.title is string
+      && request.resource.data.score is string && request.resource.data.seconds is int
+      && request.resource.data.seconds >= 0 && request.resource.data.seconds <= 86400;
+    allow update, delete: if false;
+   }
+  }
+  match /admins/{uid} {
+   allow get: if owner(uid);
+   allow list, create, update, delete: if false;
+  }
+  match /adminAudit/{auditId} {
+   allow create: if isAdmin() && request.resource.data.keys().hasOnly(['adminUid','studentUid','newSchoolYear','createdAt']) && request.resource.data.adminUid == request.auth.uid && request.resource.data.createdAt == request.time && grade(request.resource.data.newSchoolYear) >= 0;
+   allow get, list: if isAdmin();
+   allow update, delete: if false;
+  }
+  match /ranking/{uid} {
+   allow get, list: if signedIn();
+   allow create: if owner(uid) && getAfter(/databases/$(database)/documents/users/$(uid)).data.rankingOptIn == true
+     && request.resource.data.keys().hasOnly(['name','avatar','completed','points'])
+     && request.resource.data.name == getAfter(/databases/$(database)/documents/users/$(uid)).data.name
+     && request.resource.data.completed == getAfter(/databases/$(database)/documents/users/$(uid)).data.completed
+     && request.resource.data.points == getAfter(/databases/$(database)/documents/users/$(uid)).data.get('points',0);
+   allow update: if owner(uid) && getAfter(/databases/$(database)/documents/users/$(uid)).data.rankingOptIn == true
+     && request.resource.data.keys().hasOnly(['name','avatar','completed','points'])
+     && request.resource.data.name == resource.data.name
+     && request.resource.data.completed == getAfter(/databases/$(database)/documents/users/$(uid)).data.completed
+     && request.resource.data.completed in [resource.data.completed, resource.data.completed + 1]
+      && request.resource.data.get('points',0) is int
+     && request.resource.data.get('points',0) == getAfter(/databases/$(database)/documents/users/$(uid)).data.get('points',0)
+     && request.resource.data.get('points',0) >= resource.data.get('points',0)
+     && request.resource.data.get('points',0) <= resource.data.get('points',0) + 500;
+   allow delete: if owner(uid);
+  }
+ }
+}
