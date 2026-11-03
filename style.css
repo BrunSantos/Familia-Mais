@@ -168,3 +168,6 @@ details[open]>summary .menu-chevron{transform:rotate(180deg)}
 #lunchFoodForm .lunch-preferences{min-width:0;flex:1;margin:0;border:1px solid #c8dcd5;border-radius:10px;padding:.35rem .6rem}
 #lunchFoodForm .lunch-kids label{display:flex;flex:0 1 auto;align-items:center;margin:0}
 @media(max-width:600px){#lunchFoodForm .lunch-preferences{flex-basis:100%}}
+#lunchFoodForm{align-items:end}
+#lunchFoodForm > label{margin:0;min-width:0}
+#lunchFoodForm > label > :is(input,select),#lunchFoodForm > button{height:46px;box-sizing:border-box;margin:0}
