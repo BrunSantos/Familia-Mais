@@ -163,3 +163,8 @@ details[open]>summary .menu-chevron{transform:rotate(180deg)}
 @media(max-width:600px){
  #lunchFoodForm button,#lunchGenerateForm button{width:100%}
 }
+#lunchGenerateForm .lunch-repeat{display:flex;align-items:center;gap:.55rem;min-height:46px}
+#lunchGenerateForm input[name=repeat],#lunchFoodForm input[name=kid]{width:auto;margin:0;flex:none}
+#lunchFoodForm .lunch-preferences{min-width:0;flex:1;margin:0;border:1px solid #c8dcd5;border-radius:10px;padding:.35rem .6rem}
+#lunchFoodForm .lunch-kids label{display:flex;flex:0 1 auto;align-items:center;margin:0}
+@media(max-width:600px){#lunchFoodForm .lunch-preferences{flex-basis:100%}}
