@@ -694,6 +694,24 @@ function epGuardianHomeShell(){
  return panel;
 }
 function epGuardianDate(x){try{return new Date(x).toLocaleDateString('pt-PT')}catch{return '—'}}
+function epFamiliaSelection(panel,rows){
+ let selection;
+ try{selection=JSON.parse(sessionStorage.getItem('familia-estuda-selection')||'null');}
+ catch{return;}
+ if(!selection||selection.expires<Date.now())return;
+ const key=JSON.stringify(['familia-estuda-link',user.uid,selection.owner,selection.id]);
+ const section=el('section',{class:'epgchild'});
+ section.innerHTML='<h2>'+esc(selection.name)+' · Família+</h2><p>Escolhe a conta escolar correspondente entre os alunos que já autorizaram o acesso.</p><label>Conta escolar <select><option value="">Selecionar</option>'+rows.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+' · '+esc(r.year)+'</option>').join('')+'</select></label> <button type="button">Ver evolução</button><p role="status"></p><a href="../index.html">Voltar ao Família+</a>';
+ panel.prepend(section);
+ const select=section.querySelector('select');
+ try{const saved=localStorage.getItem(key);if(rows.some(r=>r.id===saved))select.value=saved;}catch{}
+ section.querySelector('button').onclick=()=>{
+  const student=rows.find(r=>r.id===select.value);
+  if(!student){section.querySelector('[role=status]').textContent='Seleciona uma conta autorizada. Se ainda não estiver na lista, associa-a por código ou QR.';return;}
+  try{localStorage.setItem(key,student.id);}catch{}
+  epFamilyReport(student.id);
+ };
+}
 async function epGuardianDashboard(){
  if(!user||!epIsGuardian())return;
  const panel=epGuardianHomeShell();
@@ -715,6 +733,7 @@ async function epGuardianDashboard(){
   }catch(e){errors.push('Aluno '+id.slice(0,6)+'…: '+authError(e));}
  }
  rows.sort((a,b)=>b.points-a.points||b.completed-a.completed);
+ epFamiliaSelection(panel,rows);
  const total=rows.reduce((a,b)=>a+b.points,0),done=rows.reduce((a,b)=>a+b.completed,0);
  panel.querySelector('#epgtotals').innerHTML=[['Filhos associados',rows.length],['Pontos acumulados',total.toLocaleString('pt-PT')],['Fichas realizadas',done]].map(([t,v])=>'<div class="epgstat"><span>'+esc(t)+'</span><strong>'+esc(v)+'</strong></div>').join('');
  panel.querySelector('#epgranking').innerHTML=rows.length?'<div style="overflow-x:auto"><table><thead><tr><th>Posição</th><th>Aluno</th><th>Pontos</th><th>Fichas</th></tr></thead><tbody>'+rows.map((r,i)=>'<tr><td>'+(i+1)+'.º</td><td>'+esc(r.name)+'</td><td>'+r.points.toLocaleString('pt-PT')+'</td><td>'+r.completed+'</td></tr>').join('')+'</tbody></table></div>':'<p class="epgmuted">Ainda não tens alunos associados à tua conta.</p>';
