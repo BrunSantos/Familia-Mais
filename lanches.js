@@ -8,8 +8,27 @@ export function setLunchChildren(kids){children=kids;}
 const save=()=>setDoc(doc(dbRef,'lunchSettings',uid),state);
 const weekdays=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
 function eligible(kid,category){return state.foods.filter(f=>f.category===category&&(!f.children?.length||f.children.includes(kid.uid)));}
-function pick(kid,cat,seed){const options=eligible(kid,cat);return options.length?options[seed%options.length].name:'';}
-function build(weeks,weekend){const output=[];const total=weeks*(weekend?7:5);for(const kid of children){for(let i=0;i<total;i++){const week=Math.floor(i/(weekend?7:5)),day=i%(weekend?7:5),seed=i+children.indexOf(kid)*3;const main=pick(kid,'principal',seed),fruit=pick(kid,'fruta',seed+week),drink=pick(kid,'bebida',seed+1)||pick(kid,'laticinio',seed+1),extra=pick(kid,'laticinio',seed+2)||pick(kid,'extra',seed+2);output.push({kidId:kid.uid,kidName:kid.name,week:week+1,day, morning:[main,drink].filter(Boolean),afternoon:[fruit,extra].filter(Boolean)});}}return output;}
+function build(weeks,weekend){
+ const output=[], days=weekend?7:5;
+ children.forEach((kid,offset)=>{
+  const pool=(...categories)=>[...new Set(categories.flatMap(c=>eligible(kid,c).map(f=>f.name)))];
+  const mains=pool('principal'), drinks=pool('bebida','laticinio','extra');
+  const produce=pool('fruta','vegetal'), sides=pool('laticinio','extra','bebida','principal');
+  const take=(options,seed)=>options.length?options[seed%options.length]:'';
+  let previousSide='';
+  for(let i=0;i<weeks*days;i++){
+   const seed=i+offset*3;
+   const main=take(mains,seed), drink=take(drinks.filter(f=>f!==main),seed);
+   const fruit=take(produce,seed);
+   const available=sides.filter(f=>f!==fruit&&f!==drink&&f!==main);
+   const varied=available.filter(f=>f!==previousSide);
+   const side=take(varied.length?varied:available,seed);
+   previousSide=side;
+   output.push({kidId:kid.uid,kidName:kid.name,week:Math.floor(i/days)+1,day:i%days,morning:[main,drink].filter(Boolean),afternoon:[fruit,side].filter(Boolean)});
+  }
+ });
+ return output;
+}
 function manualLunchView(){return `<div class="card"><h3>Adicionar lanche</h3>${children.length?`<p>Seleciona vários filhos para guardar o mesmo lanche. Para lanches diferentes, guarda um de cada vez.</p>
 <form id="lunchManualForm">
 <fieldset><legend>Para quem?</legend><div class="lunch-kids">${children.map(k=>`<label><input type="checkbox" name="kids" value="${clean(k.uid)}" ${children.length===1?'checked':''}> ${clean(k.name)}</label>`).join('')}</div></fieldset>
