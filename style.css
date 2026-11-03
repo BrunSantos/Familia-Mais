@@ -120,3 +120,21 @@ details[open]>summary .menu-chevron{transform:rotate(180deg)}
 #lunchManualForm select{min-height:2.75rem}
 
 #familyAppSelect{width:auto;max-width:100%;min-height:44px;padding:.55rem .8rem;border:1px solid #bcd8d0;border-radius:12px;background:#e0f0eb;color:#155951;font:inherit;font-weight:700}
+
+/* Lanches+: campos com a mesma altura e espaço para o nome dos alimentos. */
+.lunch-module .lunch-form label{min-width:0}
+.lunch-module .lunch-form input:not([type=checkbox]),
+.lunch-module .lunch-form select,
+.lunch-module .lunch-form button{box-sizing:border-box;min-height:44px;margin:0}
+.lunch-module .lunch-form select{padding:0 .65rem;font:inherit}
+#lunchManualForm .lunch-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end}
+#lunchManualForm .lunch-form label:nth-of-type(4){grid-column:1 / 3}
+#lunchManualForm .lunch-form button{justify-self:end}
+@media(max-width:600px){
+ #lunchManualForm .lunch-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #lunchManualForm .lunch-form label:nth-of-type(3),
+ #lunchManualForm .lunch-form label:nth-of-type(4),
+ #lunchManualForm .lunch-form button{grid-column:1 / -1}
+ #lunchManualForm .lunch-form button{width:100%}
+ .lunch-module .lunch-form label{flex-basis:100%}
+}
