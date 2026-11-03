@@ -148,3 +148,18 @@ details[open]>summary .menu-chevron{transform:rotate(180deg)}
  #lunchManualForm .lunch-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,.85fr) minmax(0,1.8fr) max-content}
  #lunchManualForm .lunch-form label:nth-of-type(4){grid-column:auto}
 }
+
+:is(#lunchFoodForm,#lunchGenerateForm) label{margin:0}
+:is(#lunchFoodForm,#lunchGenerateForm) :is(input:not([type=checkbox]),select,button){
+ height:46px;min-height:46px;margin:0;box-sizing:border-box;
+}
+:is(#lunchFoodForm,#lunchGenerateForm) select{-webkit-appearance:none;appearance:none;padding-right:2rem;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23155951' stroke-width='1.8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .6rem center}
+
+#lunchGenerateForm label:has(input[name="weekend"]){
+ display:flex;align-items:center;gap:.55rem;min-height:46px;
+}
+#lunchGenerateForm input[name="weekend"]{flex:none;width:auto;margin:0}
+#lunchFoodForm [hidden]{display:none}
+@media(max-width:600px){
+ #lunchFoodForm button,#lunchGenerateForm button{width:100%}
+}
