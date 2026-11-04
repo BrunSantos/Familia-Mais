@@ -201,3 +201,8 @@ details[open]>summary .menu-chevron{transform:rotate(180deg)}
 @media(max-width:600px){#lunchManualForm .lunch-food-picker{flex-basis:100%}}
 
 @media print{.lunch-shopping{display:none!important}}
+
+#lunchGenerateForm .lunch-afternoon-settings{flex-basis:100%;min-width:0;margin:0;border:1px solid #c8dcd5;border-radius:10px;padding:12px}
+#lunchGenerateForm .lunch-kids label{display:flex;align-items:center;gap:8px;flex:none;min-width:0}
+#lunchGenerateForm input[name=afternoonKids]{width:18px;height:18px;min-height:18px;flex:none}
+.lunch-sweet-info{flex-basis:100%;margin:0}
