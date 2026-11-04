@@ -223,3 +223,19 @@ details[open]>summary .menu-chevron{transform:rotate(180deg)}
  #familyLunchPrint .lunch-print-child{break-inside:avoid}
  #familyLunchPrint thead{display:table-header-group}
 }
+
+#tabs{align-items:center}
+#tabs>button,#tabs>#familyAppSelect{height:44px;min-height:44px;margin:0;box-sizing:border-box;line-height:1.2;border-radius:10px;font-size:inherit}
+#tabs>button{display:inline-flex;align-items:center;justify-content:center}
+#tabs>#familyAppSelect{padding:0 14px}
+.lunch-library-scroll{overflow-x:auto;margin-top:18px}
+.lunch-library-table{width:100%;border-collapse:collapse;table-layout:fixed;min-width:720px}
+.lunch-library-table th,.lunch-library-table td{padding:12px;vertical-align:top;text-align:left;border-bottom:1px solid #d9e8e3;min-width:150px}
+.lunch-library-table thead th{background:#e9f5f1;font-size:14px}
+.lunch-library-table th:first-child{width:155px}
+.lunch-library-table tbody th{font-size:14px}
+.lunch-library-items{display:grid;gap:8px}
+.lunch-library-items .lunch-chip{display:flex;align-items:center;justify-content:space-between;gap:8px;border-radius:12px;min-width:0}
+.lunch-library-items .lunch-chip>span{min-width:0;overflow-wrap:anywhere}
+.lunch-food-actions{display:flex;flex:none;gap:2px;align-items:center}
+.lunch-food-actions button{margin:0;padding:2px 4px}
