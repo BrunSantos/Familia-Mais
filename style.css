@@ -176,3 +176,15 @@ details[open]>summary .menu-chevron{transform:rotate(180deg)}
 .lunch-plan-cell span{min-width:0;overflow-wrap:anywhere}
 .lunch-plan-cell button{margin:0 0 0 auto;flex:none}
 @media print{.lunch-plan-cell button,#lunchManual{display:none}}
+
+/* As ações de edição passam sempre juntas para a linha seguinte. */
+#lunchManualForm .lunch-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px}
+#lunchManualForm .lunch-form > label{flex:1 1 135px;min-width:0}
+#lunchManualForm .lunch-form > label:nth-of-type(4){flex:2 1 250px}
+#lunchManualForm .lunch-edit-actions{display:flex;flex:0 0 auto;gap:10px;margin-left:auto;align-items:center}
+#lunchManualForm .lunch-edit-actions button{width:auto;white-space:nowrap;height:46px;margin:0}
+@media(max-width:600px){
+ #lunchManualForm .lunch-form > label{flex-basis:calc(50% - 12px)}
+ #lunchManualForm .lunch-form > label:nth-of-type(4){flex-basis:100%}
+ #lunchManualForm .lunch-edit-actions{width:100%;justify-content:flex-end}
+}

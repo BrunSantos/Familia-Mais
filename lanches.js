@@ -36,8 +36,8 @@ function manualLunchView(){return `<div class="card" id="lunchManual" hidden><h3
 <label>Dia<select name="day">${weekdays.map((d,i)=>`<option value="${i}">${d}</option>`).join('')}</select></label>
 <label>Turno<select name="period"><option value="morning">Manhã</option><option value="afternoon">Tarde</option></select></label>
 <label>Alimentos (separados por vírgulas)<input name="foods" maxlength="500" required placeholder="Ex.: Pão com queijo, pera"></label>
-<button>Guardar lanche</button></div></form>`:'<p>Ainda não tens filhos ativos associados.</p>'}
-<button type="button" class="alt" data-go="pessoas">Gerir filhos em Pessoas</button><button type="button" class="alt" data-plan-cancel>Cancelar</button></div>`;}
+<div class="lunch-edit-actions"><button type="button" class="alt" data-plan-cancel>Cancelar</button><button type="submit">Guardar lanche</button></div></div></form>`:'<p>Ainda não tens filhos ativos associados.</p>'}
+</div>`;}
 async function saveManualLunch(fd){
  const kids=children.filter(k=>fd.getAll('kids').includes(k.uid));
  const week=Number(fd.get('week')), day=Number(fd.get('day')), period=fd.get('period');
