@@ -239,3 +239,8 @@ details[open]>summary .menu-chevron{transform:rotate(180deg)}
 .lunch-library-items .lunch-chip>span{min-width:0;overflow-wrap:anywhere}
 .lunch-food-actions{display:flex;flex:none;gap:2px;align-items:center}
 .lunch-food-actions button{margin:0;padding:2px 4px}
+
+/* Keep wide library tables inside the module's grid track. */
+.lunch-module{width:100%;min-width:0;grid-template-columns:minmax(0,1fr)}
+.lunch-module>*{min-width:0;max-width:100%}
+.lunch-library-scroll{width:100%;min-width:0;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
