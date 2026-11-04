@@ -1,5 +1,5 @@
 import {extrasView,extrasSubmit,extrasDelete} from './familia-extras.js?v=48';
-import {startLanches,setLunchChildren,lanchesView,lunchSubmit,lunchClick} from './lanches.js?v=66-family-catalog';
+import {startLanches,setLunchChildren,lanchesView,lunchSubmit,lunchClick} from './lanches.js?v=67-weekly-print';
 import {initializeApp,deleteApp} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,sendPasswordResetEmail,signOut,deleteUser} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import {getFirestore,doc,getDoc,setDoc,collection,getDocs,query,where,updateDoc,deleteDoc,deleteField,serverTimestamp,runTransaction,writeBatch} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
