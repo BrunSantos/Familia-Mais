@@ -199,3 +199,5 @@ details[open]>summary .menu-chevron{transform:rotate(180deg)}
 #lunchManualForm #lunchFoodChoices label{display:flex;align-items:center;gap:8px;margin:0;min-width:0}
 #lunchManualForm #lunchFoodChoices input{width:18px;height:18px;min-height:18px;flex:none;margin:0}
 @media(max-width:600px){#lunchManualForm .lunch-food-picker{flex-basis:100%}}
+
+@media print{.lunch-shopping{display:none!important}}
