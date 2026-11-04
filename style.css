@@ -188,3 +188,8 @@ details[open]>summary .menu-chevron{transform:rotate(180deg)}
  #lunchManualForm .lunch-form > label:nth-of-type(4){flex-basis:100%}
  #lunchManualForm .lunch-edit-actions{width:100%;justify-content:flex-end}
 }
+
+.lunch-heading{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+.lunch-plan-actions{display:flex;gap:10px;align-items:center;margin-left:auto}
+.lunch-plan-actions button{margin:0;white-space:nowrap}
+@media print{.lunch-plan-actions{display:none}}
