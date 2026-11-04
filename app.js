@@ -1,5 +1,5 @@
 import {extrasView,extrasSubmit,extrasDelete} from './familia-extras.js?v=48';
-import {startLanches,setLunchChildren,lanchesView,lunchSubmit,lunchClick} from './lanches.js?v=65-sweet-afternoon';
+import {startLanches,setLunchChildren,lanchesView,lunchSubmit,lunchClick} from './lanches.js?v=66-family-catalog';
 import {initializeApp,deleteApp} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,sendPasswordResetEmail,signOut,deleteUser} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import {getFirestore,doc,getDoc,setDoc,collection,getDocs,query,where,updateDoc,deleteDoc,deleteField,serverTimestamp,runTransaction,writeBatch} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
@@ -138,7 +138,7 @@ function familyLanding(allowed){
 }
 function estudaFamilyView(){
  const kids=myKids();
- return `<section><h2>📚 Estuda+</h2><p>Escolhe um filho da Família+ para consultar a evolução no Estuda+. Na primeira vez, associa a conta escolar já autorizada.</p>${kids.length?`<form id="estudaFamilyForm"><label>Filho<select name="kid" required>${kids.map(k=>`<option value="${esc(k.uid)}">${esc(k.name)}</option>`).join('')}</select></label><button>Abrir Estuda+ para este filho</button></form>`:'<button type="button" class="alt" data-go="pessoas">Gerir filhos em Pessoas</button>'}<p><a class="family-estuda-link" href="./estuda/index.html">Abrir Estuda+ completo ↗</a></p></section>`;
+ return `<section><h2>📚 Estuda+</h2><p>Escolhe um filho da Família+ para consultar a evolução no Estuda+. Os filhos autorizados no Estuda+ são importados para a lista da família quando abres o painel escolar.</p>${kids.length?`<form id="estudaFamilyForm"><label>Filho<select name="kid" required>${kids.map(k=>`<option value="${esc(k.uid)}">${esc(k.name)}</option>`).join('')}</select></label><button>Abrir Estuda+ para este filho</button></form>`:'<button type="button" class="alt" data-go="pessoas">Gerir filhos em Pessoas</button>'}<p><a class="family-estuda-link" href="./estuda/index.html">Abrir Estuda+ completo ↗</a></p></section>`;
 }
 $('screen').addEventListener('submit',e=>{
  if(e.target.id!=='estudaFamilyForm')return;
@@ -506,3 +506,11 @@ onAuthStateChanged(auth,async current=>{user=current;profile=null;people=[];invi
 // Módulos familiares adicionais: registos locais, sem modificar os dados da Missão+.
 document.addEventListener('submit',e=>{if(e.target.id==='familyExtraForm'){e.preventDefault();if(extrasSubmit(e.target,myKids())){render();notice('Registo guardado neste navegador.')}}});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-family-delete]');if(b&&confirm('Eliminar este registo?')){if(extrasDelete(b.dataset.familyDelete)){render();notice('Registo eliminado.')}}});
+
+let familyRefreshing=false;
+document.addEventListener('visibilitychange',async()=>{
+ if(document.hidden||!user||familyRefreshing)return;
+ familyRefreshing=true;
+ try{await load();render();}catch(error){notice('Não foi possível atualizar a família: '+error.message,'error');}
+ finally{familyRefreshing=false;}
+});

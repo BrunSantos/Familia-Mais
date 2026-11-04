@@ -191,6 +191,17 @@ service cloud.firestore {
    allow create, update: if lunchOwner() && request.resource.data.keys().hasOnly(['foods','plans']) && request.resource.data.foods is list && request.resource.data.foods.size() <= 150 && request.resource.data.plans is list && request.resource.data.plans.size() <= 600;
    allow delete: if false;
   }
+  match /familyAppLinks/{ownerId}/estuda/{linkId} {
+   function ownerAdult() { return own(ownerId) && (admin() || (profile(ownerId).role == 'guardian' && profile(ownerId).status == 'active')); }
+   allow read: if ownerAdult();
+   allow create: if ownerAdult()
+    && request.resource.data.keys().hasOnly(['childId','estudaOwnerUid','estudaChildUid'])
+    && request.resource.data.childId is string
+    && request.resource.data.estudaOwnerUid is string
+    && request.resource.data.estudaChildUid is string
+    && (admin() || request.auth.uid in getAfter(/databases/$(database)/documents/profiles/$(request.resource.data.childId)).data.guardianIds);
+   allow update, delete: if false;
+  }
   match /{document=**} { allow read, write: if false; }
  }
 }

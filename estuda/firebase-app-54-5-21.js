@@ -1,3 +1,4 @@
+import {familyRequest} from './family-catalog.js?v=66';
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {getAuth,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,sendPasswordResetEmail,updateProfile} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {getFirestore,doc,getDoc,setDoc,collection,getDocs,query,orderBy,limit,writeBatch,increment,serverTimestamp,onSnapshot,runTransaction,deleteDoc} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
@@ -694,23 +695,50 @@ function epGuardianHomeShell(){
  return panel;
 }
 function epGuardianDate(x){try{return new Date(x).toLocaleDateString('pt-PT')}catch{return '—'}}
-function epFamiliaSelection(panel,rows){
- let selection;
- try{selection=JSON.parse(sessionStorage.getItem('familia-estuda-selection')||'null');}
- catch{return;}
- if(!selection||selection.expires<Date.now())return;
- const key=JSON.stringify(['familia-estuda-link',user.uid,selection.owner,selection.id]);
- const section=el('section',{class:'epgchild'});
- section.innerHTML='<h2>'+esc(selection.name)+' · Família+</h2><p>Escolhe a conta escolar correspondente entre os alunos que já autorizaram o acesso.</p><label>Conta escolar <select><option value="">Selecionar</option>'+rows.map(r=>'<option value="'+esc(r.id)+'">'+esc(r.name)+' · '+esc(r.year)+'</option>').join('')+'</select></label> <button type="button">Ver evolução</button><p role="status"></p><a href="../index.html">Voltar ao Família+</a>';
- panel.prepend(section);
- const select=section.querySelector('select');
- try{const saved=localStorage.getItem(key);if(rows.some(r=>r.id===saved))select.value=saved;}catch{}
- section.querySelector('button').onclick=()=>{
-  const student=rows.find(r=>r.id===select.value);
-  if(!student){section.querySelector('[role=status]').textContent='Seleciona uma conta autorizada. Se ainda não estiver na lista, associa-a por código ou QR.';return;}
-  try{localStorage.setItem(key,student.id);}catch{}
-  epFamilyReport(student.id);
- };
+async function epCentralFamily(panel,rows){
+ const account=user;
+ const box=el('section',{class:'epgchild'});box.innerHTML='<h2>Filhos da Família+</h2><p>A carregar a lista central…</p>';panel.prepend(box);
+ const request=data=>familyRequest({email:account.email,estudaOwnerUid:account.uid,...data});
+ const normalize=name=>String(name).normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase().replace(/\s+/g,' ');
+ try{
+  let catalog=await request({action:'catalog'});
+  if(user?.uid!==account.uid||!box.isConnected)return;
+  let imported=0;
+  // Never merge identities based on a name. A collision needs an explicit choice.
+  for(const row of rows){
+   if(catalog.links.some(l=>l.estudaChildUid===row.id))continue;
+   if(catalog.kids.some(k=>normalize(k.name)===normalize(row.name)))continue;
+   const linked=await request({action:'associate',student:{id:row.id,name:row.name,year:row.year}});
+   catalog.kids.push({uid:linked.childId,name:row.name,schoolYear:row.year});
+   catalog.links.push({childId:linked.childId,estudaChildUid:row.id});
+   imported++;
+  }
+  if(user?.uid!==account.uid||!box.isConnected)return;
+  box.innerHTML='<h2>Filhos da Família+</h2><p>Os mesmos perfis são usados no Missão+, Lanches+, Agenda+, Compras+ e Refeições+. O histórico escolar continua protegido pela autorização do aluno.</p>'+
+   (imported?'<p role="status">'+imported+' perfil(s) importado(s) do Estuda+. Já estão disponíveis na Família+.</p>':'')+
+   catalog.kids.map(k=>{
+    const link=catalog.links.find(l=>l.childId===k.uid);
+    const row=rows.find(r=>r.id===link?.estudaChildUid);
+    return '<article class="epgchild"><h3>'+esc(k.name)+'</h3>'+
+     (row?'<p>'+esc(row.year)+'</p><button type="button" data-central-report="'+esc(row.id)+'">Ver resultados e evolução</button>':
+      '<p>Sem conta escolar associada. O perfil já existe na Família+.</p>')+'</article>';
+   }).join('')+
+   rows.filter(r=>!catalog.links.some(l=>l.estudaChildUid===r.id)).map(r=>'<form data-central-link="'+esc(r.id)+'"><p>Confirma o perfil da Família+ correspondente a <strong>'+esc(r.name)+'</strong>:</p><label>Filho <select required><option value="">Selecionar</option>'+catalog.kids.filter(k=>!catalog.links.some(l=>l.childId===k.uid)).map(k=>'<option value="'+esc(k.uid)+'">'+esc(k.name)+'</option>').join('')+'<option value="__new">É outro filho — criar perfil</option></select></label> <button>Guardar associação</button></form>').join('')+
+   '<p><a href="../index.html">Gerir filhos na Família+</a></p>';
+  box.querySelectorAll('[data-central-report]').forEach(button=>button.onclick=()=>epFamilyReport(button.dataset.centralReport));
+  box.querySelectorAll('[data-central-link]').forEach(form=>form.onsubmit=async event=>{
+   event.preventDefault();const button=form.querySelector('button'),row=rows.find(r=>r.id===form.dataset.centralLink),choice=form.querySelector('select').value;
+   if(!choice||!row)return;
+   button.disabled=true;
+   try{
+    await request({action:'associate',student:{id:row.id,name:row.name,year:row.year},childId:choice==='__new'?'':choice});
+    await epGuardianDashboard();
+   }catch(error){message(error.message);button.disabled=false;}
+  });
+ }catch(error){
+  box.innerHTML='<h2>Filhos da Família+</h2><p role="alert">'+esc(error.message)+'</p><p><a href="../index.html">Entrar na Família+</a></p><button type="button">Tentar novamente</button>';
+  box.querySelector('button').onclick=()=>{box.remove();epCentralFamily(panel,rows);};
+ }
 }
 async function epGuardianDashboard(){
  if(!user||!epIsGuardian())return;
@@ -733,7 +761,7 @@ async function epGuardianDashboard(){
   }catch(e){errors.push('Aluno '+id.slice(0,6)+'…: '+authError(e));}
  }
  rows.sort((a,b)=>b.points-a.points||b.completed-a.completed);
- epFamiliaSelection(panel,rows);
+ void epCentralFamily(panel,rows);
  const total=rows.reduce((a,b)=>a+b.points,0),done=rows.reduce((a,b)=>a+b.completed,0);
  panel.querySelector('#epgtotals').innerHTML=[['Filhos associados',rows.length],['Pontos acumulados',total.toLocaleString('pt-PT')],['Fichas realizadas',done]].map(([t,v])=>'<div class="epgstat"><span>'+esc(t)+'</span><strong>'+esc(v)+'</strong></div>').join('');
  panel.querySelector('#epgranking').innerHTML=rows.length?'<div style="overflow-x:auto"><table><thead><tr><th>Posição</th><th>Aluno</th><th>Pontos</th><th>Fichas</th></tr></thead><tbody>'+rows.map((r,i)=>'<tr><td>'+(i+1)+'.º</td><td>'+esc(r.name)+'</td><td>'+r.points.toLocaleString('pt-PT')+'</td><td>'+r.completed+'</td></tr>').join('')+'</tbody></table></div>':'<p class="epgmuted">Ainda não tens alunos associados à tua conta.</p>';
