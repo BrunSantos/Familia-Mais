@@ -35,13 +35,13 @@ function manualLunchView(){return `<div class="card" id="lunchManual" hidden><h3
 <div class="lunch-form"><label>Semana do plano<input type="number" name="week" min="1" max="8" value="1" required></label>
 <label>Dia<select name="day">${weekdays.map((d,i)=>`<option value="${i}">${d}</option>`).join('')}</select></label>
 <label>Turno<select name="period"><option value="morning">Manhã</option><option value="afternoon">Tarde</option></select></label>
-<label>Alimentos (separados por vírgulas)<input name="foods" maxlength="500" required placeholder="Ex.: Pão com queijo, pera"></label>
+<fieldset class="lunch-food-picker"><legend>Alimentos do lanche</legend><div id="lunchFoodChoices"></div></fieldset>
 <div class="lunch-edit-actions"><button type="button" class="alt" data-plan-cancel>Cancelar</button><button type="submit">Guardar lanche</button></div></div></form>`:'<p>Ainda não tens filhos ativos associados.</p>'}
 </div>`;}
 async function saveManualLunch(fd){
  const kids=children.filter(k=>fd.getAll('kids').includes(k.uid));
  const week=Number(fd.get('week')), day=Number(fd.get('day')), period=fd.get('period');
- const foods=String(fd.get('foods')||'').split(',').map(f=>f.trim()).filter(Boolean);
+ const foods=[...new Set(fd.getAll('foods').map(String).filter(Boolean))];
  if(!kids.length)throw Error('Seleciona pelo menos um filho.');
  if(!foods.length)throw Error('Indica pelo menos um alimento.');
  if(!Number.isInteger(week)||week<1||week>8||!Number.isInteger(day)||day<0||day>6||!['morning','afternoon'].includes(period))throw Error('Escolhe uma semana, um dia e um turno válidos.');
@@ -84,8 +84,10 @@ export async function lunchClick(e,render){
   if(!row||!form||!['morning','afternoon'].includes(period))return;
   document.getElementById('lunchManual').hidden=false;
   form.querySelectorAll('[name="kids"]').forEach(box=>box.checked=box.value===row.kidId);
-  for(const [name,value] of Object.entries({week:row.week,day:row.day,period,foods:row[period].join(', ')}))form.elements.namedItem(name).value=value;
-  form.elements.namedItem('foods').focus();return;
+  for(const [name,value] of Object.entries({week:row.week,day:row.day,period}))form.elements.namedItem(name).value=value;
+  const options=[...new Set([...state.foods.map(f=>f.name),...row[period]])];
+  document.getElementById('lunchFoodChoices').innerHTML=options.map(name=>`<label><input type="checkbox" name="foods" value="${clean(name)}" ${row[period].includes(name)?'checked':''}> <span>${clean(name)}</span></label>`).join('');
+  document.querySelector('#lunchFoodChoices input')?.focus();return;
  }
  const clear=e.target.closest('[data-lunch-clear]');
  if(clear){
