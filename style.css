@@ -245,3 +245,11 @@ details[open]>summary .menu-chevron{transform:rotate(180deg)}
 /* Allow module contents to shrink on small screens. */
 .lunch-module{width:100%;min-width:0;grid-template-columns:minmax(0,1fr)}
 .lunch-module>*{min-width:0;max-width:100%}
+
+.lunch-shopping .lunch-heading{flex-wrap:wrap;align-items:center}
+.lunch-shopping .lunch-heading h3{margin:0;flex:1 1 170px}
+.lunch-shopping .lunch-heading button{margin:0 0 0 auto;flex:none;max-width:100%}
+.lunch-shopping-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.lunch-shopping-table th,.lunch-shopping-table td{padding:12px 8px;border-bottom:1px solid #d9e8e3;text-align:left;overflow-wrap:anywhere}
+.lunch-shopping-table th:last-child,.lunch-shopping-table td:last-child{width:100px;text-align:right;font-variant-numeric:tabular-nums}
+.lunch-shopping-table thead{background:#e9f5f1}
