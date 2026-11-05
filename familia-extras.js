@@ -23,3 +23,5 @@ export function extrasSubmit(form,kids){
  items.push({id:crypto.randomUUID(),type,title,date,detail,kidId:kids.find(k=>k.uid===fd.get('kid'))?.uid||''});save();return true;
 }
 export function extrasDelete(id){const old=items.length;items=items.filter(x=>x.id!==id);save();return old!==items.length;}
+
+export function previousShoppingItems(){return items.filter(item=>item.type==='compras');}

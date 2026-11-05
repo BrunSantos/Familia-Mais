@@ -191,6 +191,39 @@ service cloud.firestore {
    allow create, update: if lunchOwner() && request.resource.data.keys().hasOnly(['foods','plans']) && request.resource.data.foods is list && request.resource.data.foods.size() <= 150 && request.resource.data.plans is list && request.resource.data.plans.size() <= 600;
    allow delete: if false;
   }
+  match /lunchPantry/{ownerId}/items/{itemId} {
+   function pantryOwner() { return own(ownerId) && (admin() || (profile(ownerId).role == 'guardian' && profile(ownerId).status == 'active')); }
+   allow get, list: if pantryOwner();
+   allow create, update: if pantryOwner()
+    && request.resource.data.keys().hasOnly(['name','quantity','unit','updatedAt'])
+    && request.resource.data.keys().hasAll(['name','quantity','unit','updatedAt'])
+    && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
+    && request.resource.data.quantity is number && request.resource.data.quantity >= 0 && request.resource.data.quantity <= 1000000
+    && request.resource.data.unit in ['unidade','fatia','g','kg','ml','l','lata','embalagem']
+    && request.resource.data.updatedAt == request.time;
+   allow delete: if pantryOwner();
+  }
+  function shoppingOwner(ownerId) { return own(ownerId) && (admin() || (profile(ownerId).role == 'guardian' && profile(ownerId).status == 'active')); }
+  match /shoppingManual/{ownerId}/items/{itemId} {
+   allow get, list, delete: if shoppingOwner(ownerId);
+   allow create, update: if shoppingOwner(ownerId)
+    && request.resource.data.keys().hasOnly(['name','quantity','unit','originId','updatedAt'])
+    && request.resource.data.keys().hasAll(['name','quantity','unit','updatedAt'])
+    && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
+    && request.resource.data.quantity is number && request.resource.data.quantity > 0 && request.resource.data.quantity <= 1000000
+    && request.resource.data.unit in ['unidade','fatia','g','kg','ml','l','lata','embalagem']
+    && request.resource.data.get('originId','') is string && request.resource.data.get('originId','').size() <= 120
+    && request.resource.data.updatedAt == request.time;
+  }
+  match /shoppingChecks/{ownerId}/items/{itemId} {
+   allow get, list, delete: if shoppingOwner(ownerId);
+   allow create, update: if shoppingOwner(ownerId)
+    && request.resource.data.keys().hasOnly(['checked','quantity','updatedAt'])
+    && request.resource.data.keys().hasAll(['checked','quantity','updatedAt'])
+    && request.resource.data.checked is bool
+    && request.resource.data.quantity is number && request.resource.data.quantity > 0 && request.resource.data.quantity <= 1000000000
+    && request.resource.data.updatedAt == request.time;
+  }
   match /familyAppLinks/{ownerId}/estuda/{linkId} {
    function ownerAdult() { return own(ownerId) && (admin() || (profile(ownerId).role == 'guardian' && profile(ownerId).status == 'active')); }
    allow read: if ownerAdult();

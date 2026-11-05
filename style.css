@@ -268,3 +268,33 @@ details[open]>summary .menu-chevron{transform:rotate(180deg)}
 
 .lunch-food-save-actions{display:flex;flex:1 0 100%;gap:10px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
 @media(max-width:600px){#lunchFoodForm .lunch-food-save-actions button{width:auto;max-width:100%}}
+
+.lunch-pantry .lunch-heading{flex-wrap:wrap;align-items:center}
+.lunch-pantry .lunch-heading h3{margin:0;flex:1}
+.lunch-pantry .lunch-heading button{margin-left:auto}
+#lunchPantryForm[hidden]{display:none}
+#lunchPantryForm{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:end;margin:16px 0}
+#lunchPantryForm label{min-width:0;margin:0}
+#lunchPantryForm input,#lunchPantryForm select{height:46px;margin:5px 0 0}
+#lunchPantryForm>.lunch-pantry-actions,#lunchPantryForm>p{grid-column:1/-1}
+.lunch-pantry-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.lunch-pantry-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;border-bottom:1px solid #d9e8e3;padding:14px 0}
+.lunch-pantry-row>strong{overflow-wrap:anywhere}
+.lunch-pantry-side{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:flex-end}
+.lunch-pantry-side>span{font-variant-numeric:tabular-nums}
+.lunch-shopping-stock{display:block;color:#637c75;font-size:13px;margin-top:5px}
+.lunch-shopping-side{display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:flex-end}
+.lunch-shopping-side button{margin:0}
+@media(max-width:600px){#lunchPantryForm{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#lunchPantryForm>label:first-child{grid-column:1/-1}.lunch-pantry-row{grid-template-columns:minmax(0,1fr)}.lunch-pantry .lunch-heading h3{flex-basis:100%}}
+@media print{.lunch-pantry{display:none!important}}
+
+#shoppingManualForm[hidden]{display:none}
+#shoppingManualForm{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:end;margin:16px 0}
+#shoppingManualForm label{min-width:0;margin:0}
+#shoppingManualForm input,#shoppingManualForm select{height:46px;margin:5px 0 0}
+#shoppingManualForm .lunch-pantry-actions{grid-column:1/-1}
+.shopping-heading{flex-wrap:wrap}
+.shopping-heading h3{margin:0;flex:1}
+.shopping-manual-list,.shopping-legacy{margin-top:14px}
+.shopping-purchased .lunch-buy-check>span{text-decoration:line-through;color:#637c75}
+@media(max-width:600px){#shoppingManualForm{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#shoppingManualForm>label:first-child{grid-column:1/-1}.shopping-heading h3{flex-basis:100%}}
