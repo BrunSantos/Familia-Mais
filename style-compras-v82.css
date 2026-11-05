@@ -299,4 +299,4 @@ details[open]>summary .menu-chevron{transform:rotate(180deg)}
 .shopping-purchased .lunch-buy-check>span{text-decoration:line-through;color:#637c75}
 @media(max-width:600px){#shoppingManualForm{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#shoppingManualForm>label:first-child{grid-column:1/-1}.shopping-heading h3{flex-basis:100%}}
 
-#appVersion{font-size:12px;color:#637c75;text-align:center;margin:20px 0 0}
+@media print{#loginVersion{display:none!important}}
