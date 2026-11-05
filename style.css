@@ -251,5 +251,5 @@ details[open]>summary .menu-chevron{transform:rotate(180deg)}
 .lunch-shopping .lunch-heading button{margin:0 0 0 auto;flex:none;max-width:100%}
 .lunch-shopping-table{width:100%;border-collapse:collapse;table-layout:fixed}
 .lunch-shopping-table th,.lunch-shopping-table td{padding:12px 8px;border-bottom:1px solid #d9e8e3;text-align:left;overflow-wrap:anywhere}
-.lunch-shopping-table th:last-child,.lunch-shopping-table td:last-child{width:100px;text-align:right;font-variant-numeric:tabular-nums}
+.lunch-shopping-table th:last-child,.lunch-shopping-table td:last-child{width:8em;white-space:nowrap;overflow-wrap:normal;word-break:normal;text-align:right;font-variant-numeric:tabular-nums}
 .lunch-shopping-table thead{background:#e9f5f1}
