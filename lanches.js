@@ -2,8 +2,8 @@ import {doc,getDoc,setDoc} from 'https://www.gstatic.com/firebasejs/11.10.0/fire
 const clean=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const defaults=[['Wrap de frango','principal'],['Wrap de atum','principal'],['Pão com fiambre','principal'],['Pão com queijo','principal'],['Iogurte','laticinio'],['Leite de chocolate','bebida'],['Maçã','fruta'],['Banana','fruta'],['Pera','fruta'],['Cenoura','vegetal'],['Tostas','extra']];
 const initialState=()=>({foods:defaults.map(([name,category])=>({name,category,children:[]})),plans:[]});
-let state=initialState(),uid='',dbRef=null,children=[],notify=()=>{};
-export async function startLanches(db,userId,kids,notice){dbRef=db;uid=userId;children=kids;notify=notice;state=initialState();const snap=await getDoc(doc(db,'lunchSettings',uid));state=snap.exists()?{...state,...snap.data()}:state;}
+let state=initialState(),uid='',dbRef=null,children=[],notify=()=>{},shoppingExcluded=new Set();
+export async function startLanches(db,userId,kids,notice){dbRef=db;uid=userId;children=kids;notify=notice;shoppingExcluded=new Set();state=initialState();const snap=await getDoc(doc(db,'lunchSettings',uid));state=snap.exists()?{...state,...snap.data()}:state;}
 export function setLunchChildren(kids){children=kids;}
 const save=()=>setDoc(doc(dbRef,'lunchSettings',uid),state);
 const weekdays=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
@@ -120,22 +120,66 @@ function foodLibraryGroups(){
  return `<div class="lunch-library-groups">${groups.map(({title,items})=>`<section class="lunch-library-person"><h4>${clean(title)}</h4><div class="lunch-library-types">${categories.map(([category,label])=>{const foods=items.filter(({food})=>food.category===category);return foods.length?`<details class="lunch-library-category" ${['principal','fruta'].includes(category)?'open':''}><summary>${label} · ${foods.length}</summary><div class="lunch-library-items">${foods.sort((a,b)=>a.food.name.localeCompare(b.food.name,'pt')).map(chip).join('')}</div></details>`:'';}).join('')||'<p class="muted">Sem alimentos associados.</p>'}</div></section>`).join('')}</div>`;
 
 }
-function shoppingItems(){
- const totals=new Map();
- for(const p of state.plans)for(const food of [...p.morning,...p.afternoon])totals.set(food,(totals.get(food)||0)+1);
- return [...totals].sort(([a],[b])=>a.localeCompare(b,'pt'));
+const ingredientUnits=[['unidade','unidade(s)'],['fatia','fatia(s)'],['g','g'],['kg','kg'],['ml','ml'],['l','l'],['lata','lata(s)'],['embalagem','embalagem(ns)']];
+const articleKey=name=>String(name).trim().normalize('NFC').toLocaleLowerCase('pt').replace(/\s+/g,' ');
+const directFood=f=>f.purchaseMode==='direct'||(!f.purchaseMode&&!['principal','doce','extra'].includes(f.category));
+function ingredientRow(item={}){return `<div class="lunch-ingredient-row"><label>Ingrediente<input name="ingredientName" maxlength="80" value="${clean(item.name||'')}" placeholder="Ex.: Ovos"></label><label>Quantidade por porção<input name="ingredientQuantity" type="number" min="0.001" max="100000" step="any" value="${clean(item.quantity??'')}" placeholder="Ex.: 1"></label><label>Unidade<select name="ingredientUnit">${ingredientUnits.map(([value,label])=>`<option value="${value}" ${value===(item.unit||'unidade')?'selected':''}>${label}</option>`).join('')}</select></label><button type="button" class="alt" data-ingredient-remove aria-label="Remover ingrediente">×</button></div>`;}
+function ingredientsEditor(){return `<fieldset class="lunch-recipe"><legend>Lista de compras</legend><label>Como comprar<select name="purchaseMode" data-purchase-mode><option value="ingredients">Comprar os ingredientes</option><option value="direct">Comprar este artigo diretamente</option></select></label><div id="lunchIngredientEditor"><p class="muted">Indica os ingredientes e a quantidade necessária para uma porção deste lanche. Ex.: Pão — 1 unidade; Ovo — 1 unidade. Ingredientes com o mesmo nome e unidade serão somados.</p><div id="lunchIngredientRows">${ingredientRow()}</div><button type="button" class="alt" data-ingredient-add>Adicionar ingrediente</button></div><p class="muted">Para produtos como um iogurte ou uma peça de fruta, podes escolher comprar diretamente: conta uma unidade por porção.</p></fieldset>`;}
+function readIngredients(fd){
+ if(fd.get('purchaseMode')==='direct')return [];
+ const names=fd.getAll('ingredientName'),quantities=fd.getAll('ingredientQuantity'),units=fd.getAll('ingredientUnit');
+ const result=[];
+ for(let i=0;i<names.length;i++){
+  const name=String(names[i]).trim(),raw=String(quantities[i]||'').trim();
+  if(!name&&!raw)continue;
+  const quantity=Number(raw.replace(',','.')),unit=String(units[i]);
+  if(!name||name.length>80||!Number.isFinite(quantity)||quantity<=0||quantity>100000||!ingredientUnits.some(([value])=>value===unit))throw Error('Preenche o nome, uma quantidade positiva e a unidade de cada ingrediente.');
+  result.push({name,quantity,unit});
+ }
+ if(!result.length)throw Error('Adiciona pelo menos um ingrediente ou escolhe «Comprar este artigo diretamente».');
+ if(result.length>30)throw Error('Cada alimento pode ter até 30 ingredientes.');
+ return result;
 }
-function shoppingView(){return `<section class="card lunch-shopping" aria-labelledby="lunchShoppingTitle"><div class="lunch-heading"><h3 id="lunchShoppingTitle">Lista de compras</h3><button type="button" class="alt" data-lunch-whatsapp>Enviar por WhatsApp</button></div><p class="muted">Quantidades por porção, para todos os filhos e semanas do plano.</p><table class="lunch-shopping-table"><thead><tr><th scope="col">Artigo</th><th scope="col">Quantidade</th></tr></thead><tbody>${shoppingItems().map(([food,quantity])=>`<tr><td>${clean(food)}</td><td>${quantity}</td></tr>`).join('')}</tbody></table></section>`;}
-export function lanchesView(){return `<section class="lunch-module"><h2>🥪 Lanches+</h2><p class="muted">Organiza os lanches da manhã e da tarde para cada filho. Os dados são privados da tua conta.</p>${manualLunchView()}<details class="card"><summary><strong>Biblioteca de alimentos (${state.foods.length})</strong></summary><form id="lunchFoodForm" class="lunch-form"><label>Alimento<input name="name" maxlength="80" required placeholder="Ex.: Pão com queijo"></label><label>Categoria<select name="category">${[['principal','Principal'],['fruta','Fruta'],['bebida','Bebida'],['laticinio','Laticínio'],['vegetal','Vegetal'],['extra','Complemento'],['doce','Doce']].map(([v,n])=>`<option value="${v}">${n}</option>`).join('')}</select></label><label>Preferido por<select name="kid"><option value="">Sem preferência</option>${children.map(k=>`<option value="${clean(k.uid)}">${clean(k.name)}</option>`).join('')}${children.length>1?`<option value="__all">${children.length===2?'Ambos':'Todos os filhos'}</option>`:''}</select></label><button>Adicionar alimento</button><button type="button" class="alt" data-lunch-cancel hidden>Cancelar</button></form>${foodLibraryGroups()}</details><div class="card"><h3>Gerar plano</h3><form id="lunchGenerateForm" class="lunch-form"><label>Semanas<select name="weeks">${[1,2,4,8].map(n=>`<option value="${n}" ${n===4?'selected':''}>${n}</option>`).join('')}</select></label><label><input type="checkbox" name="weekend"> Incluir fins de semana</label><label class="lunch-repeat"><input type="checkbox" name="repeat"> Aceitar repetições se faltarem opções</label><fieldset class="lunch-afternoon-settings"><legend>Gerar lanche da tarde</legend><div class="lunch-kids">${children.map(k=>`<label><input type="checkbox" name="afternoonKids" value="${clean(k.uid)}" ${!state.plans.some(p=>p.kidId===k.uid)||state.plans.some(p=>p.kidId===k.uid&&p.afternoon.length)?'checked':''}> ${clean(k.name)}</label>`).join('')}</div><small>Desmarca os filhos que só precisam de lanche da manhã.</small></fieldset><p class="lunch-sweet-info">À tarde: um alimento e fruta, quando disponível. Se faltar fruta para variar durante a semana, aparece um aviso antes de gerar.</p><p class="lunch-sweet-info">Doce: uma vez por filho e por semana, quando existir na biblioteca. Substitui o principal da manhã, mantendo a bebida ou o iogurte. O dia roda de semana para semana.</p><button ${!children.length?'disabled':''}>Gerar lanches</button></form>${!children.length?'<p>Adiciona primeiro um filho à família.</p>':''}</div>${state.plans.length?`<div class="card"><div class="lunch-heading"><h3>Plano de refeições</h3><div class="lunch-plan-actions"><button type="button" class="alt" data-lunch-print>Imprimir</button><button type="button" class="alt" data-lunch-clear>Apagar plano</button></div></div>${plansByChild()}</div>${shoppingView()}`:''}</section>`;}
+function shoppingData(){
+ const totals=new Map(),pending=new Map();
+ for(const plan of state.plans)for(const name of [...plan.morning,...plan.afternoon]){
+  const matches=state.foods.map((food,index)=>({food,index})).filter(({food})=>articleKey(food.name)===articleKey(name));
+  const signature=food=>JSON.stringify(directFood(food)?'direct':food.ingredients||[]);
+  const match=matches[0],ambiguous=matches.some(({food})=>signature(food)!==signature(match.food));
+  const recipe=match&&!ambiguous?(directFood(match.food)?[{name:match.food.name,quantity:1,unit:'unidade'}]:match.food.ingredients):null;
+  if(!recipe?.length||recipe.some(item=>!item.name||!(Number(item.quantity)>0)||!ingredientUnits.some(([unit])=>unit===item.unit))){pending.set(name,{name,index:match?.index,ambiguous});continue;}
+  for(const ingredient of recipe){
+   const unit=ingredient.unit==='kg'?'g':ingredient.unit==='l'?'ml':ingredient.unit;
+   const quantity=Number(ingredient.quantity)*(['kg','l'].includes(ingredient.unit)?1000:1);
+   const key=JSON.stringify([articleKey(ingredient.name),unit]);
+   const row=totals.get(key)||{key,name:ingredient.name.trim(),quantity:0,unit};row.quantity+=quantity;totals.set(key,row);
+  }
+ }
+ return {items:[...totals.values()].sort((a,b)=>a.name.localeCompare(b.name,'pt')||a.unit.localeCompare(b.unit)),pending:[...pending.values()]};
+}
+function shoppingQuantity(item){let quantity=item.quantity,unit=item.unit;if(quantity>=1000&&['g','ml'].includes(unit)){quantity/=1000;unit=unit==='g'?'kg':'l';}const labels={unidade:quantity===1?'unidade':'unidades',fatia:quantity===1?'fatia':'fatias',lata:quantity===1?'lata':'latas',embalagem:quantity===1?'embalagem':'embalagens'};return quantity.toLocaleString('pt-PT',{maximumFractionDigits:3})+' '+(labels[unit]||unit);}
+function shoppingView(){const {items,pending}=shoppingData();return `<section class="card lunch-shopping" aria-labelledby="lunchShoppingTitle"><div class="lunch-heading"><h3 id="lunchShoppingTitle">Lista de compras</h3><button type="button" class="alt" data-lunch-whatsapp>Enviar por WhatsApp</button></div><p class="muted">Ingredientes para todos os filhos e semanas do plano. Desmarca o que já tens em casa; o WhatsApp inclui apenas os artigos selecionados.</p>${pending.length?`<div class="lunch-shopping-pending"><strong>Falta definir ingredientes</strong><p>Estes lanches ainda não entram nas quantidades. Configura-os antes de enviar a lista.</p><ul>${pending.map(item=>`<li><span>${clean(item.name)}${item.ambiguous?' — há alimentos com o mesmo nome e ingredientes diferentes. Usa nomes distintos.':''}</span>${item.index!==undefined?`<button type="button" class="alt" data-lunch-edit="${item.index}">Definir ingredientes</button>`:'<span>Adiciona este alimento à biblioteca.</span>'}</li>`).join('')}</ul></div>`:''}${items.length?`<table class="lunch-shopping-table"><thead><tr><th scope="col">Artigo</th><th scope="col">Quantidade</th></tr></thead><tbody>${items.map(item=>`<tr><td><label class="lunch-buy-check"><input type="checkbox" data-shopping-key="${clean(item.key)}" ${shoppingExcluded.has(item.key)?'':'checked'}><span>${clean(item.name)}</span></label></td><td>${shoppingQuantity(item)}</td></tr>`).join('')}</tbody></table>`:'<p>A lista aparecerá depois de definires os ingredientes dos lanches.</p>'}</section>`;}
+export function lanchesView(){return `<section class="lunch-module"><h2>🥪 Lanches+</h2><p class="muted">Organiza os lanches da manhã e da tarde para cada filho. Os dados são privados da tua conta.</p>${manualLunchView()}<details class="card"><summary><strong>Biblioteca de alimentos (${state.foods.length})</strong></summary><form id="lunchFoodForm" class="lunch-form"><label>Alimento<input name="name" maxlength="80" required placeholder="Ex.: Pão com queijo"></label><label>Categoria<select name="category">${[['principal','Principal'],['fruta','Fruta'],['bebida','Bebida'],['laticinio','Laticínio'],['vegetal','Vegetal'],['extra','Complemento'],['doce','Doce']].map(([v,n])=>`<option value="${v}">${n}</option>`).join('')}</select></label><label>Preferido por<select name="kid"><option value="">Sem preferência</option>${children.map(k=>`<option value="${clean(k.uid)}">${clean(k.name)}</option>`).join('')}${children.length>1?`<option value="__all">${children.length===2?'Ambos':'Todos os filhos'}</option>`:''}</select></label>${ingredientsEditor()}<div class="lunch-food-save-actions"><button type="button" class="alt" data-lunch-cancel hidden>Cancelar</button><button>Adicionar alimento</button></div></form>${foodLibraryGroups()}</details><div class="card"><h3>Gerar plano</h3><form id="lunchGenerateForm" class="lunch-form"><label>Semanas<select name="weeks">${[1,2,4,8].map(n=>`<option value="${n}" ${n===4?'selected':''}>${n}</option>`).join('')}</select></label><label><input type="checkbox" name="weekend"> Incluir fins de semana</label><label class="lunch-repeat"><input type="checkbox" name="repeat"> Aceitar repetições se faltarem opções</label><fieldset class="lunch-afternoon-settings"><legend>Gerar lanche da tarde</legend><div class="lunch-kids">${children.map(k=>`<label><input type="checkbox" name="afternoonKids" value="${clean(k.uid)}" ${!state.plans.some(p=>p.kidId===k.uid)||state.plans.some(p=>p.kidId===k.uid&&p.afternoon.length)?'checked':''}> ${clean(k.name)}</label>`).join('')}</div><small>Desmarca os filhos que só precisam de lanche da manhã.</small></fieldset><p class="lunch-sweet-info">À tarde: um alimento e fruta, quando disponível. Se faltar fruta para variar durante a semana, aparece um aviso antes de gerar.</p><p class="lunch-sweet-info">Doce: uma vez por filho e por semana, quando existir na biblioteca. Substitui o principal da manhã, mantendo a bebida ou o iogurte. O dia roda de semana para semana.</p><button ${!children.length?'disabled':''}>Gerar lanches</button></form>${!children.length?'<p>Adiciona primeiro um filho à família.</p>':''}</div>${state.plans.length?`<div class="card"><div class="lunch-heading"><h3>Plano de refeições</h3><div class="lunch-plan-actions"><button type="button" class="alt" data-lunch-print>Imprimir</button><button type="button" class="alt" data-lunch-clear>Apagar plano</button></div></div>${plansByChild()}</div>${shoppingView()}`:''}</section>`;}
 export async function lunchSubmit(e,render){if(e.target.id==='lunchManualForm'){e.preventDefault();const button=e.submitter;if(button)button.disabled=true;try{if(await saveManualLunch(new FormData(e.target))){render();notify('Lanche guardado.');}}finally{if(button)button.disabled=false;}}else if(e.target.id==='lunchFoodForm'){e.preventDefault();const fd=new FormData(e.target),name=String(fd.get('name')||'').trim();if(!name)return;const form=e.target, editing=form.dataset.edit!==undefined, i=Number(form.dataset.edit);
- const foods=state.foods.slice(), food={name,category:String(fd.get('category')),children:fd.get('kid')==='__all'?children.map(k=>k.uid):fd.get('kid')==='__keep'&&editing?(foods[i]?.children||[]):children.filter(k=>k.uid===fd.get('kid')).map(k=>k.uid)};
+ const foods=state.foods.slice(), food={name,category:String(fd.get('category')),purchaseMode:fd.get('purchaseMode')==='direct'?'direct':'ingredients',ingredients:readIngredients(fd),children:fd.get('kid')==='__all'?children.map(k=>k.uid):fd.get('kid')==='__keep'&&editing?(foods[i]?.children||[]):children.filter(k=>k.uid===fd.get('kid')).map(k=>k.uid)};
  if(editing){if(!foods[i])return;foods[i]={...foods[i],...food};}else foods.push(food);
- await setDoc(doc(dbRef,'lunchSettings',uid),{...state,foods});state.foods=foods;
+ const oldName=editing?state.foods[i].name:null;
+ const plans=oldName&&oldName!==name?state.plans.map(p=>({...p,morning:p.morning.map(f=>f===oldName?name:f),afternoon:p.afternoon.map(f=>f===oldName?name:f)})):state.plans;
+ await setDoc(doc(dbRef,'lunchSettings',uid),{...state,foods,plans});state.foods=foods;state.plans=plans;
  render();document.getElementById('lunchFoodForm').closest('details').open=true;
  notify(editing?'Alimento atualizado.':'Alimento adicionado.');}else if(e.target.id==='lunchGenerateForm'){e.preventDefault();if(!children.length)return;const fd=new FormData(e.target);const afternoonIds=fd.getAll('afternoonKids');const plans=build(Math.min(8,Math.max(1,Number(fd.get('weeks'))||4)),fd.has('weekend'),fd.has('repeat'),afternoonIds);const warnings=afternoonVarietyWarnings(afternoonIds,fd.has('weekend')?7:5);const confirmation=[...(state.plans.length?['O plano anterior será substituído.']:[]),...warnings,...(warnings.length?['Podes cancelar para adicionar mais fruta à biblioteca ou gerar o plano nestas condições. Gerar mesmo assim?']:['Substituir o plano anterior?'])];if((warnings.length||state.plans.length)&&!confirm(confirmation.join('\n\n')))return;await setDoc(doc(dbRef,'lunchSettings',uid),{...state,plans});state.plans=plans;render();notify('Plano e lista de compras guardados.');}}
 export async function lunchClick(e,render){
+ const shoppingBox=e.target.closest('[data-shopping-key]');
+ if(shoppingBox){if(shoppingBox.checked)shoppingExcluded.delete(shoppingBox.dataset.shoppingKey);else shoppingExcluded.add(shoppingBox.dataset.shoppingKey);return;}
+ if(e.target.closest('[data-ingredient-add]')){const rows=document.getElementById('lunchIngredientRows');if(rows.children.length>=30){notify('Podes adicionar até 30 ingredientes.');return;}rows.insertAdjacentHTML('beforeend',ingredientRow());rows.lastElementChild.querySelector('input').focus();return;}
+ const removeIngredient=e.target.closest('[data-ingredient-remove]');if(removeIngredient){removeIngredient.closest('.lunch-ingredient-row').remove();return;}
+
  if(e.target.closest('[data-lunch-whatsapp]')){
-  const lines=shoppingItems().map(([name,n])=>'- '+name+' × '+n+' porções');
+  const {items,pending}=shoppingData();
+  if(pending.length){notify('Define primeiro os ingredientes dos lanches assinalados para não enviares uma lista incompleta.');return;}
+  const selected=items.filter(item=>!shoppingExcluded.has(item.key));
+  if(!selected.length){notify('Seleciona pelo menos um artigo para comprar.');return;}
+  const lines=selected.map(item=>'- '+item.name+' × '+shoppingQuantity(item));
   const message=['Lista de compras — Família+','',...lines].join('\n');
   window.open('https://wa.me/?text='+encodeURIComponent(message),'_blank','noopener,noreferrer');
   return;
@@ -168,11 +212,16 @@ export async function lunchClick(e,render){
  const edit=e.target.closest('[data-lunch-edit]'),cancel=e.target.closest('[data-lunch-cancel]');
  if(edit||cancel){
   const form=document.getElementById('lunchFoodForm'),submit=form.querySelector('button:not([type])');
-  if(cancel){form.reset();delete form.dataset.edit;submit.textContent='Adicionar alimento';cancel.hidden=true;return;}
+  if(cancel){form.reset();document.getElementById('lunchIngredientRows').innerHTML=ingredientRow();document.getElementById('lunchIngredientEditor').hidden=false;delete form.dataset.edit;submit.textContent='Adicionar alimento';cancel.hidden=true;return;}
   const i=Number(edit.dataset.lunchEdit),food=state.foods[i];if(!food)return;
   form.dataset.edit=String(i);
   form.elements.namedItem('name').value=food.name;
   form.elements.category.value=food.category;
+  form.elements.purchaseMode.value=directFood(food)?'direct':'ingredients';
+  document.getElementById('lunchIngredientRows').innerHTML=food.ingredients?.length?food.ingredients.map(ingredientRow).join(''):ingredientRow();
+  document.getElementById('lunchIngredientEditor').hidden=directFood(food);
+  document.querySelectorAll('#lunchIngredientRows input,#lunchIngredientRows select').forEach(el=>el.disabled=directFood(food));
+  form.closest('details').open=true;form.scrollIntoView({block:'start',behavior:'smooth'});
   const select=form.elements.namedItem('kid'), ids=food.children||[];
   select.querySelector('option[value="__keep"]')?.remove();
   if(!ids.length)select.value='';

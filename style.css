@@ -253,3 +253,18 @@ details[open]>summary .menu-chevron{transform:rotate(180deg)}
 .lunch-shopping-table th,.lunch-shopping-table td{padding:12px 8px;border-bottom:1px solid #d9e8e3;text-align:left;overflow-wrap:anywhere}
 .lunch-shopping-table th:last-child,.lunch-shopping-table td:last-child{width:8em;white-space:nowrap;overflow-wrap:normal;word-break:normal;text-align:right;font-variant-numeric:tabular-nums}
 .lunch-shopping-table thead{background:#e9f5f1}
+
+#lunchFoodForm .lunch-recipe{flex:1 0 100%;min-width:0;margin:4px 0 8px}
+#lunchFoodForm .lunch-recipe>label{max-width:400px}
+.lunch-ingredient-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.2fr) minmax(0,1fr) auto;gap:10px;align-items:end;margin:12px 0}
+#lunchFoodForm .lunch-ingredient-row button{width:44px}
+.lunch-buy-check{display:flex;align-items:center;gap:10px;margin:0}
+.lunch-buy-check input{width:20px;height:20px;flex:none;margin:0}
+.lunch-shopping-pending{padding:14px;border:1px solid #d9cba8;border-radius:10px;margin:16px 0;background:#fffaf0}
+.lunch-shopping-pending ul{padding:0;list-style:none;margin:0}
+.lunch-shopping-pending li{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:10px 0;border-top:1px solid #d9e8e3}
+.lunch-shopping-table th:last-child,.lunch-shopping-table td:last-child{width:10em}
+@media(max-width:650px){.lunch-ingredient-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.lunch-ingredient-row>label:first-child{grid-column:1/-1}.lunch-shopping-table th:last-child,.lunch-shopping-table td:last-child{width:8em}.lunch-shopping-table th,.lunch-shopping-table td{padding:10px 4px}}
+
+.lunch-food-save-actions{display:flex;flex:1 0 100%;gap:10px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+@media(max-width:600px){#lunchFoodForm .lunch-food-save-actions button{width:auto;max-width:100%}}
