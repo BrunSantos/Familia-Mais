@@ -224,6 +224,27 @@ service cloud.firestore {
     && request.resource.data.quantity is number && request.resource.data.quantity > 0 && request.resource.data.quantity <= 1000000000
     && request.resource.data.updatedAt == request.time;
   }
+  match /mealSettings/{ownerId} {
+   allow get: if shoppingOwner(ownerId);
+   allow list, delete: if false;
+   allow create, update: if shoppingOwner(ownerId)
+    && request.resource.data.keys().hasOnly(['foods','plans','config','updatedAt'])
+    && request.resource.data.keys().hasAll(['foods','plans','config','updatedAt'])
+    && request.resource.data.foods is list && request.resource.data.foods.size() <= 150
+    && request.resource.data.plans is list && request.resource.data.plans.size() <= 1000
+    && request.resource.data.config is map
+    && request.resource.data.config.keys().hasOnly(['lunchWeek','lunchEnd','dinnerWeek','dinnerEnd','participants','adults','breakfast','weeks','weekend'])
+    && request.resource.data.config.lunchWeek in ['home','school','off']
+    && request.resource.data.config.lunchEnd in ['home','school','off']
+    && request.resource.data.config.dinnerWeek in ['home','school','off']
+    && request.resource.data.config.dinnerEnd in ['home','school','off']
+    && request.resource.data.config.participants is list && request.resource.data.config.participants.size() <= 100
+    && request.resource.data.config.adults is int && request.resource.data.config.adults >= 0 && request.resource.data.config.adults <= 20
+    && request.resource.data.config.breakfast is map && request.resource.data.config.breakfast.size() <= 100
+    && request.resource.data.config.weeks in [1,2,4,8]
+    && request.resource.data.config.weekend is bool
+    && request.resource.data.updatedAt == request.time;
+  }
   match /familyAppLinks/{ownerId}/estuda/{linkId} {
    function ownerAdult() { return own(ownerId) && (admin() || (profile(ownerId).role == 'guardian' && profile(ownerId).status == 'active')); }
    allow read: if ownerAdult();

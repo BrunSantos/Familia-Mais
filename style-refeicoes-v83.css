@@ -1,0 +1,309 @@
+*{box-sizing:border-box}body{margin:0;font:16px system-ui;background:#f2f8f6;color:#173b36}header{background:white;padding:16px max(16px,calc((100% - 980px)/2));display:flex;gap:15px;align-items:center;border-bottom:1px solid #d9e7e3}header b{font-size:24px;color:#126c62;flex:1}main{max-width:980px;margin:20px auto;padding:0 14px}section,.card{background:#fff;border:1px solid #d9e7e3;border-radius:17px;padding:20px;margin-bottom:14px}nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}button{background:#126c62;border:0;border-radius:10px;color:white;font:inherit;padding:10px 15px;cursor:pointer}button:disabled{opacity:.5}button.alt{background:#dff1eb;color:#145c53}button.red{background:#aa4141}label{display:block;margin:10px 0}input,select,textarea{display:block;width:100%;padding:10px;border:1px solid #bfd5ce;border-radius:9px;font:inherit;margin-top:5px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:12px}.grid .card{margin:0}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.muted{color:#637c75;font-size:14px}.pill{background:#e3f2ec;border-radius:30px;padding:5px 10px;font-size:13px}.points{color:#126c62;font-size:22px;font-weight:800}#feedback{color:#a33;font-weight:650}@media(max-width:650px){nav{display:grid;grid-template-columns:repeat(2,1fr)}nav button{font-size:14px}header{padding:12px}section,.card{padding:14px}}
+
+.login-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}.login-actions button{padding:12px 20px}#feedback{overflow-wrap:anywhere}
+
+.item{display:flex;justify-content:space-between;align-items:center;gap:14px;border-top:1px solid #d9e7e3;padding:13px 0;flex-wrap:wrap}.item p{margin:4px 0}.check{display:flex;align-items:center;gap:8px}.check input{width:auto;margin:0}fieldset{border:1px solid #bfd5ce;border-radius:10px;margin:12px 0;padding:12px}button:focus-visible,input:focus-visible{outline:3px solid #75b6a8;outline-offset:2px}
+
+.filterbar{display:grid;grid-template-columns:2fr 1fr;gap:12px}.filterbar label{margin:0}.task-card[hidden]{display:none!important}@media(max-width:650px){.filterbar{grid-template-columns:1fr}}
+
+#taskPreset{border:2px solid #126c62;background:#eaf7f1;font-weight:650;min-height:48px}#taskForm label:first-child{font-weight:700}
+
+#taskPresetGroup{border:2px solid #126c62;background:#eaf7f1;font-weight:650;min-height:48px}
+
+#taskPresetSearch{border:2px solid #126c62;background:#fff}#presetSearchCount{margin:5px 0 8px}
+
+/* Combobox pesquisável das tarefas predefinidas */
+.combo{position:relative;display:flex;align-items:center}.combo input{padding-right:48px;border:2px solid #126c62;background:#fff}.combo-arrow{position:absolute;right:5px;top:9px;padding:5px 12px;background:#e3f2ec;color:#145c53}.combo-options{position:absolute;top:100%;left:0;right:0;z-index:30;background:#fff;border:1px solid #bfd5ce;border-radius:9px;box-shadow:0 10px 25px #173b3620;max-height:280px;overflow-y:auto}.combo-options[hidden]{display:none}.combo-option{display:block;width:100%;text-align:left;background:#fff;color:#173b36;border-radius:0;padding:12px;border-bottom:1px solid #e8efec}.combo-option:hover,.combo-option:focus{background:#eaf7f1}.combo-option small{color:#637c75}.combo-option.custom{font-weight:650;color:#126c62}
+
+.task-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+
+.weekday-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}.day-check{display:flex;align-items:center;justify-content:center;gap:5px;background:#eaf7f1;border-radius:9px;padding:9px 4px;font-size:13px}.day-check input{width:auto;margin:0}.combo-empty{padding:10px;color:#637c75;font-size:14px}[hidden]{display:none!important}@media(max-width:650px){.weekday-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+.weekly-calendar{display:grid;grid-template-columns:repeat(7,minmax(115px,1fr));gap:8px;overflow-x:auto}.weekly-day{border:1px solid #c8dcd6;border-radius:12px;padding:10px;min-width:115px}.weekly-day p{font-size:12px;margin:8px 0;padding:6px;background:#e9f5f0;border-radius:7px}.weekly-day small{font-size:11px;color:#52635e}@media(max-width:850px){.weekly-calendar{display:flex;overflow-x:auto}.weekly-day{flex:0 0 140px}}
+
+.week-stats{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid #d8e8e2}.week-stats b{width:100%}.week-stats span{background:#e4f3ed;border-radius:10px;padding:6px 9px;font-size:.9rem}
+
+/* Perfis de filhos — v20 */
+.kid-heading{display:flex;align-items:center;gap:12px}.kid-avatar{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;width:54px;height:54px;flex:0 0 54px;border-radius:50%;background:#dcefe9;color:#126c62;font-weight:700;font-size:22px;overflow:hidden;margin-right:8px}.kid-avatar img{width:100%;height:100%;object-fit:cover}.photo-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.photo-button{display:inline-flex;align-items:center;background:#e0f0ec;color:#135d53;border-radius:12px;padding:9px 12px;font-weight:600;cursor:pointer;font-size:14px}.photo-button input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}.photo-button:focus-within{outline:2px solid #146b61;outline-offset:2px}
+
+/* Gestão dos filhos v27 */
+.child-management{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.child-management button{min-height:44px}.child-management .red{background:#a92e32;color:white}
+/* v29: calendário familiar por filho e período */
+.calendar-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.family-calendar>h3{margin:0 0 12px}.family-child{margin-bottom:22px}.family-child>h4{margin:10px 0;font-size:1.15rem}
+.calendar-period{margin-top:10px}.calendar-period>strong{display:block;background:#dceee7;border-radius:5px;padding:5px;font-size:12px}
+.calendar-entry{display:flex;gap:5px;align-items:flex-start;padding:5px 1px;font-size:12px;border-bottom:1px solid #e1ece8;overflow-wrap:anywhere}
+.print-check{font-size:18px;line-height:1;color:#79928b}
+
+.save-feedback{font-weight:650;margin-top:12px;min-height:1.4em}.save-feedback[data-state="working"]{color:#126c62}.save-feedback[data-state="error"]{color:#a33;background:#fff2f1;padding:12px;border-radius:9px}
+
+/* v31: notificações globais em vez de mensagens vermelhas fixas */
+#feedback,.save-feedback{display:none!important}
+.app-toast[hidden]{display:none!important}
+.app-toast{position:fixed;z-index:9999;top:18px;right:18px;max-width:min(440px,calc(100vw - 36px));display:flex;align-items:flex-start;gap:14px;padding:16px 18px;border-radius:14px;background:#e7f5ef;color:#12594d;border:1px solid #9ecfc0;box-shadow:0 10px 32px #0002;font-weight:650;overflow-wrap:anywhere}
+.app-toast.toast-error{background:#fff1ef;color:#872d27;border-color:#eab6b0}
+.app-toast.toast-working{background:#eef5fb;color:#285577;border-color:#b7d1e7}
+.toast-close{background:transparent;color:inherit;border:0;padding:0 2px;font-size:24px;line-height:1;min-width:24px}
+@media(max-width:650px){.app-toast{left:12px;right:12px;top:12px;max-width:none}}
+
+/* v32: notificações em pop-up central, nunca em texto vermelho permanente */
+#feedback,.save-feedback{display:none!important}
+.app-toast[hidden]{display:none!important}
+.app-toast{position:fixed!important;inset:auto!important;left:50%!important;top:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%)!important;z-index:100001!important;width:min(440px,calc(100vw - 32px))!important;max-width:none!important;min-height:90px;align-items:center!important;padding:22px 24px!important;box-shadow:0 0 0 100vmax rgba(12,35,30,.25),0 18px 55px rgba(0,0,0,.22)!important;font-size:16px}
+.app-toast .toast-close{margin-left:auto;flex-shrink:0;cursor:pointer}
+@media(max-width:650px){.app-toast{left:50%!important;right:auto!important;top:50%!important}}
+
+.day-schedule-row{display:grid;grid-template-columns:65px 1fr 1fr;gap:12px;align-items:end;margin:10px 0}.day-schedule-row label{font-size:.9rem}.day-schedule-row input{width:100%}@media(max-width:500px){.day-schedule-row{grid-template-columns:42px 1fr 1fr;gap:6px}}
+
+.copy-pickers{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.copy-choice{margin:7px 0}.copy-draft{display:grid;gap:12px}.copy-draft .day-schedule-row{display:grid;grid-template-columns:70px 1fr 1fr;gap:8px}.copy-draft label{min-width:0}#copyDraftArea{margin-top:18px}#copyDraftArea .card{border:1px solid #b8d8ce;margin:12px 0}
+
+/* v38 — painel familiar de tarefas */
+.panel-heading{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:18px}.panel-heading h2{margin:0}.panel-heading p{flex:1 1 230px}.family-panel-kids{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:18px}.panel-kid{display:flex;flex-direction:column;align-items:center;gap:10px;min-height:190px;padding:20px;border:2px solid #b9d9cf;border-radius:18px;background:#f5fbf8;color:#184f44;cursor:pointer}.panel-kid .kid-avatar{width:85px;height:85px}.panel-kid strong{font-size:1.35rem}.panel-kid span:last-child{font-size:.9rem}.panel-selected{display:flex;align-items:center;gap:14px;margin:18px 0}.panel-selected .kid-avatar{width:66px;height:66px}.panel-period{margin:20px 0}.panel-period h3{margin-bottom:10px}.panel-task{display:flex;align-items:center;gap:14px;padding:13px 16px;margin:9px 0;border:1px solid #cbded8;border-radius:14px;background:white}.panel-task-info{display:flex;flex:1;flex-direction:column;gap:5px}.panel-task-info strong{font-size:1.12rem}.panel-task-info small{color:#59766e}.panel-check{width:60px;min-width:60px;height:60px;border-radius:50%;font-size:29px;background:#d9eee7;color:#126c62;border:2px solid #93c5b4;cursor:pointer}.panel-check.done{background:#126c62;color:white}.panel-check.pending{background:#f4ead1;color:#795d20}.panel-check:disabled{cursor:default;opacity:.85}#workspace:fullscreen{overflow:auto;background:#f7faf8;padding:20px}
+
+/* v39: imagens ilustrativas em cada cartão do painel */
+.panel-task-art{width:168px;height:105px;object-fit:cover;border-radius:13px;flex:none;background:#e8f5f0;display:block}
+@media(max-width:650px){.panel-task{gap:10px;padding:10px}.panel-task-art{width:95px;height:90px}.panel-task-info strong{font-size:1rem}.panel-check{width:48px;min-width:48px;height:48px;font-size:24px}}
+@media(max-width:390px){.panel-task-art{width:74px;height:82px}.panel-task{gap:7px}.panel-task-info small{font-size:.75rem}}
+
+/* v41: seleção de ilustrações */
+.task-image-preview{display:flex;align-items:center;gap:12px;margin:8px 0 14px;color:#637c75}.task-image-preview img{width:110px;height:78px;object-fit:cover;border-radius:12px;background:#e8f5f0}.task-image-preview small{font-size:.85rem}
+
+/* v42: alertas dentro da aplicação */
+.nav-alert{display:inline-flex;min-width:21px;height:21px;align-items:center;justify-content:center;border-radius:14px;background:#a04431;color:white;font-weight:700;font-size:12px;padding:0 5px;margin-left:5px}.attention-summary{border:2px solid #dfc4a6}.attention-summary p{display:flex;align-items:center;flex-wrap:wrap;gap:9px}
+
+/* Menus compactos no painel inicial */
+.home-mobile-menu{display:none}
+.photo-menu{margin:12px 0}
+.photo-menu>summary,.home-mobile-menu>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 14px;border-radius:11px;background:#dff1eb;color:#145c53;font-weight:650;min-height:44px}
+.photo-menu>summary::-webkit-details-marker,.home-mobile-menu>summary::-webkit-details-marker{display:none}
+.menu-chevron{font-size:20px;line-height:1;transition:transform .15s}
+details[open]>summary .menu-chevron{transform:rotate(180deg)}
+.photo-menu .photo-actions{margin-top:10px;display:flex;flex-wrap:wrap;gap:8px}
+.photo-menu .photo-actions label{margin:0}
+@media(max-width:650px){
+ .home-desktop-actions{display:none}
+ .home-mobile-menu{display:block;margin-top:16px}
+ .home-mobile-menu>summary{width:100%;background:#126c62;color:white;padding:13px 16px}
+ .home-menu-items{display:grid;grid-template-columns:1fr;gap:8px;padding:12px 0 2px}
+ .home-menu-items button{width:100%;text-align:left;min-height:46px}
+ .photo-menu>summary{font-size:14px;min-height:40px;padding:7px 12px}
+ .photo-menu .photo-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .photo-menu .photo-actions .photo-button{font-size:14px;text-align:center;padding:9px 6px}
+ .kid-heading{gap:12px}
+}
+
+/* Família+ · Lanches */
+.lunch-module{display:grid;gap:16px;max-width:1100px;margin:auto}.lunch-module .card{padding:18px}.lunch-form{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin:12px 0}.lunch-form label{display:grid;gap:5px;min-width:145px;flex:1}.lunch-form input:not([type=checkbox]),.lunch-form select{width:100%}.lunch-foods{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.lunch-chip{border:1px solid #a6c8be;border-radius:18px;padding:7px 10px;background:#eff8f4;color:#194c43;font-size:13px}.lunch-chip button{padding:0 5px;background:transparent;color:#8a2828;border:0;font-size:18px}.lunch-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}.lunch-table-wrap{overflow:auto;max-height:520px}.lunch-table{width:100%;border-collapse:collapse;font-size:13px}.lunch-table td,.lunch-table th{padding:9px;border-bottom:1px solid #d9e8e3;text-align:left;min-width:90px}.lunch-table th{position:sticky;top:0;background:#e9f5f1}@media print{header,nav,.lunch-module>details,.lunch-module>.card:has(#lunchGenerateForm),.lunch-heading button{display:none!important}.lunch-table-wrap{max-height:none;overflow:visible}}
+
+.family-extra{max-width:800px}.family-note{background:#fff3d9;padding:12px;border-radius:12px}
+.family-extra form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;margin:18px 0}
+.family-extra form label{display:grid;gap:5px}.family-extra form button{align-self:end}
+.family-item{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:12px 0;border-bottom:1px solid #dce4e3}
+.family-estuda-link{display:inline-block;padding:13px 20px;background:#126c62;color:white;border-radius:12px;text-decoration:none}
+
+.family-landing{max-width:1100px;margin:0 auto}.family-landing h1{margin-bottom:5px}.family-module-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:16px;margin:28px 0}.family-module{display:flex;flex-direction:column;align-items:flex-start;gap:12px;text-align:left;background:#fff;color:#173b35;border:1px solid #cbded8;border-radius:20px;padding:25px;min-height:145px;cursor:pointer}.family-module:hover{background:#e4f3ef;border-color:#126c62}.family-module strong{font-size:1.45rem}.family-module span{font-size:1rem;color:#526d66}.family-admin{padding:22px;border-radius:18px;background:#e6f1ee;margin-top:24px}.family-admin h3{margin-top:0}@media(max-width:600px){.family-module-grid{grid-template-columns:1fr 1fr;gap:10px}.family-module{padding:15px;min-height:130px}.family-module strong{font-size:1.1rem}.family-module span{font-size:.85rem}}
+/* Menu comum para regressar à Família+ e mudar de aplicação. */
+#tabs{position:relative;overflow:visible}
+.family-app-menu{position:relative;display:inline-block}
+.family-app-menu>summary{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:10px 16px;border:1px solid #badbd5;border-radius:12px;background:#fff;color:#126c62;font-weight:700;cursor:pointer;list-style:none;box-sizing:border-box}
+.family-app-menu>summary::-webkit-details-marker{display:none}
+.family-app-menu>summary:focus-visible{outline:3px solid #94cfc2;outline-offset:2px}
+.family-app-menu-list{position:absolute;z-index:50;right:0;top:calc(100% + 6px);width:max-content;min-width:200px;max-width:min(280px,85vw);display:flex;flex-direction:column;gap:4px;padding:8px;background:white;border:1px solid #d6e8e3;border-radius:14px;box-shadow:0 12px 30px #173d3526}
+.family-app-menu-list button{width:100%;text-align:left;margin:0;min-height:44px}
+.family-app-menu-list button[aria-current=page]{background:#e1f4ed}
+@media(max-width:650px){#tabs{display:flex;flex-wrap:wrap;gap:8px}.family-app-menu{margin-left:auto}.family-app-menu-list{right:0}}
+
+.lunch-kids{display:flex;flex-wrap:wrap;gap:.5rem 1rem}
+.lunch-kids label{display:flex;align-items:center;gap:.4rem}
+.lunch-kids input[type=checkbox]{width:auto;margin:0}
+#lunchManualForm fieldset{border:1px solid #bed2cb;border-radius:.6rem;margin:0 0 1rem;padding:.75rem}
+#lunchManualForm select{min-height:2.75rem}
+
+#familyAppSelect{width:auto;max-width:100%;min-height:44px;padding:.55rem .8rem;border:1px solid #bcd8d0;border-radius:12px;background:#e0f0eb;color:#155951;font:inherit;font-weight:700}
+
+/* Lanches+: campos com a mesma altura e espaço para o nome dos alimentos. */
+.lunch-module .lunch-form label{min-width:0}
+.lunch-module .lunch-form input:not([type=checkbox]),
+.lunch-module .lunch-form select,
+.lunch-module .lunch-form button{box-sizing:border-box;min-height:44px;margin:0}
+.lunch-module .lunch-form select{padding:0 .65rem;font:inherit}
+#lunchManualForm .lunch-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end}
+#lunchManualForm .lunch-form label:nth-of-type(4){grid-column:1 / 3}
+#lunchManualForm .lunch-form button{justify-self:end}
+@media(max-width:600px){
+ #lunchManualForm .lunch-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #lunchManualForm .lunch-form label:nth-of-type(3),
+ #lunchManualForm .lunch-form label:nth-of-type(4),
+ #lunchManualForm .lunch-form button{grid-column:1 / -1}
+ #lunchManualForm .lunch-form button{width:100%}
+ .lunch-module .lunch-form label{flex-basis:100%}
+}
+
+#lunchManualForm .lunch-form label{margin:0}
+#lunchManualForm .lunch-form :is(input:not([type=checkbox]),select,button){
+ height:46px;min-height:46px;margin:0;box-sizing:border-box;
+}
+#lunchManualForm .lunch-form select{-webkit-appearance:none;appearance:none;padding-right:2rem;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23155951' stroke-width='1.8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .6rem center}
+@media(min-width:761px){
+ #lunchManualForm .lunch-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,.85fr) minmax(0,1.8fr) max-content}
+ #lunchManualForm .lunch-form label:nth-of-type(4){grid-column:auto}
+}
+
+:is(#lunchFoodForm,#lunchGenerateForm) label{margin:0}
+:is(#lunchFoodForm,#lunchGenerateForm) :is(input:not([type=checkbox]),select,button){
+ height:46px;min-height:46px;margin:0;box-sizing:border-box;
+}
+:is(#lunchFoodForm,#lunchGenerateForm) select{-webkit-appearance:none;appearance:none;padding-right:2rem;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23155951' stroke-width='1.8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .6rem center}
+
+#lunchGenerateForm label:has(input[name="weekend"]){
+ display:flex;align-items:center;gap:.55rem;min-height:46px;
+}
+#lunchGenerateForm input[name="weekend"]{flex:none;width:auto;margin:0}
+#lunchFoodForm [hidden]{display:none}
+@media(max-width:600px){
+ #lunchFoodForm button,#lunchGenerateForm button{width:100%}
+}
+#lunchGenerateForm .lunch-repeat{display:flex;align-items:center;gap:.55rem;min-height:46px}
+#lunchGenerateForm input[name=repeat],#lunchFoodForm input[name=kid]{width:auto;margin:0;flex:none}
+#lunchFoodForm .lunch-preferences{min-width:0;flex:1;margin:0;border:1px solid #c8dcd5;border-radius:10px;padding:.35rem .6rem}
+#lunchFoodForm .lunch-kids label{display:flex;flex:0 1 auto;align-items:center;margin:0}
+@media(max-width:600px){#lunchFoodForm .lunch-preferences{flex-basis:100%}}
+#lunchFoodForm{align-items:end}
+#lunchFoodForm > label{margin:0;min-width:0}
+#lunchFoodForm > label > :is(input,select),#lunchFoodForm > button{height:46px;box-sizing:border-box;margin:0}
+#lunchManual[hidden]{display:none}
+.lunch-plan-cell{display:flex;align-items:center;gap:.65rem}
+.lunch-plan-cell span{min-width:0;overflow-wrap:anywhere}
+.lunch-plan-cell button{margin:0 0 0 auto;flex:none}
+@media print{.lunch-plan-cell button,#lunchManual{display:none}}
+
+/* As ações de edição passam sempre juntas para a linha seguinte. */
+#lunchManualForm .lunch-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px}
+#lunchManualForm .lunch-form > label{flex:1 1 135px;min-width:0}
+#lunchManualForm .lunch-form > label:nth-of-type(4){flex:2 1 250px}
+#lunchManualForm .lunch-edit-actions{display:flex;flex:0 0 auto;gap:10px;margin-left:auto;align-items:center}
+#lunchManualForm .lunch-edit-actions button{width:auto;white-space:nowrap;height:46px;margin:0}
+@media(max-width:600px){
+ #lunchManualForm .lunch-form > label{flex-basis:calc(50% - 12px)}
+ #lunchManualForm .lunch-form > label:nth-of-type(4){flex-basis:100%}
+ #lunchManualForm .lunch-edit-actions{width:100%;justify-content:flex-end}
+}
+
+.lunch-heading{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+.lunch-plan-actions{display:flex;gap:10px;align-items:center;margin-left:auto}
+.lunch-plan-actions button{margin:0;white-space:nowrap}
+@media print{.lunch-plan-actions{display:none}}
+
+#lunchManualForm .lunch-food-picker{flex:2 1 320px;min-width:0;margin:0;border:1px solid #c8dcd5;border-radius:10px;padding:12px}
+#lunchFoodChoices{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;max-height:240px;overflow:auto}
+#lunchManualForm #lunchFoodChoices label{display:flex;align-items:center;gap:8px;margin:0;min-width:0}
+#lunchManualForm #lunchFoodChoices input{width:18px;height:18px;min-height:18px;flex:none;margin:0}
+@media(max-width:600px){#lunchManualForm .lunch-food-picker{flex-basis:100%}}
+
+@media print{.lunch-shopping{display:none!important}}
+
+#lunchGenerateForm .lunch-afternoon-settings{flex-basis:100%;min-width:0;margin:0;border:1px solid #c8dcd5;border-radius:10px;padding:12px}
+#lunchGenerateForm .lunch-kids label{display:flex;align-items:center;gap:8px;flex:none;min-width:0}
+#lunchGenerateForm input[name=afternoonKids]{width:18px;height:18px;min-height:18px;flex:none}
+.lunch-sweet-info{flex-basis:100%;margin:0}
+
+#familyLunchPrint{display:none}
+@media print{
+ @page{size:A4 portrait;margin:12mm}
+ body:has(> #familyLunchPrint)>:not(#familyLunchPrint){display:none!important}
+ #familyLunchPrint{display:block!important;font:10pt Arial,sans-serif;color:#173b35}
+ #familyLunchPrint .lunch-print-week{break-before:page;page-break-before:always}
+ #familyLunchPrint .lunch-print-week:first-child{break-before:auto;page-break-before:auto}
+ #familyLunchPrint h1{font-size:16pt;margin:0 0 12px}
+ #familyLunchPrint h2{font-size:12pt;margin:12px 0 6px}
+ #familyLunchPrint table{width:100%;border-collapse:collapse;table-layout:fixed}
+ #familyLunchPrint th,#familyLunchPrint td{border:1px solid #abc6bd;padding:5px;text-align:left;overflow-wrap:anywhere;font-size:9pt}
+ #familyLunchPrint th:first-child{width:16%}
+ #familyLunchPrint tr{break-inside:avoid}
+ #familyLunchPrint .lunch-print-child{break-inside:avoid}
+ #familyLunchPrint thead{display:table-header-group}
+}
+
+#tabs{align-items:center}
+#tabs>button,#tabs>#familyAppSelect{height:44px;min-height:44px;margin:0;box-sizing:border-box;line-height:1.2;border-radius:10px;font-size:inherit}
+#tabs>button{display:inline-flex;align-items:center;justify-content:center}
+#tabs>#familyAppSelect{padding:0 14px}
+.lunch-library-groups{display:grid;gap:14px;margin-top:18px;min-width:0}
+.lunch-library-person{margin:0;padding:18px;min-width:0;background:#fff;border:1px solid #d2e4dd;border-radius:14px}
+.lunch-library-person h4{margin:0 0 14px;font-size:17px}
+.lunch-library-types{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start;min-width:0}
+.lunch-library-category{min-width:0;padding:10px;border:1px solid #d9e8e3;border-radius:10px}
+.lunch-library-category summary{font-weight:600;cursor:pointer;overflow-wrap:anywhere}
+.lunch-library-category .lunch-library-items{margin-top:10px}
+@media(max-width:650px){.lunch-library-types{grid-template-columns:minmax(0,1fr)}.lunch-library-person{padding:12px}}
+.lunch-library-items{display:grid;gap:8px}
+.lunch-library-items .lunch-chip{display:flex;align-items:center;justify-content:space-between;gap:8px;border-radius:12px;min-width:0}
+.lunch-library-items .lunch-chip>span{min-width:0;overflow-wrap:anywhere}
+.lunch-food-actions{display:flex;flex:none;gap:2px;align-items:center}
+.lunch-food-actions button{margin:0;padding:2px 4px}
+
+/* Allow module contents to shrink on small screens. */
+.lunch-module{width:100%;min-width:0;grid-template-columns:minmax(0,1fr)}
+.lunch-module>*{min-width:0;max-width:100%}
+
+.lunch-shopping .lunch-heading{flex-wrap:wrap;align-items:center}
+.lunch-shopping .lunch-heading h3{margin:0;flex:1 1 170px}
+.lunch-shopping .lunch-heading button{margin:0 0 0 auto;flex:none;max-width:100%}
+.lunch-shopping-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.lunch-shopping-table th,.lunch-shopping-table td{padding:12px 8px;border-bottom:1px solid #d9e8e3;text-align:left;overflow-wrap:anywhere}
+.lunch-shopping-table th:last-child,.lunch-shopping-table td:last-child{width:8em;white-space:nowrap;overflow-wrap:normal;word-break:normal;text-align:right;font-variant-numeric:tabular-nums}
+.lunch-shopping-table thead{background:#e9f5f1}
+
+#lunchFoodForm .lunch-recipe{flex:1 0 100%;min-width:0;margin:4px 0 8px}
+#lunchFoodForm .lunch-recipe>label{max-width:400px}
+.lunch-ingredient-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.2fr) minmax(0,1fr) auto;gap:10px;align-items:end;margin:12px 0}
+#lunchFoodForm .lunch-ingredient-row button{width:44px}
+.lunch-buy-check{display:flex;align-items:center;gap:10px;margin:0}
+.lunch-buy-check input{width:20px;height:20px;flex:none;margin:0}
+.lunch-shopping-pending{padding:14px;border:1px solid #d9cba8;border-radius:10px;margin:16px 0;background:#fffaf0}
+.lunch-shopping-pending ul{padding:0;list-style:none;margin:0}
+.lunch-shopping-pending li{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:10px 0;border-top:1px solid #d9e8e3}
+.lunch-shopping-table th:last-child,.lunch-shopping-table td:last-child{width:10em}
+@media(max-width:650px){.lunch-ingredient-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.lunch-ingredient-row>label:first-child{grid-column:1/-1}.lunch-shopping-table th:last-child,.lunch-shopping-table td:last-child{width:8em}.lunch-shopping-table th,.lunch-shopping-table td{padding:10px 4px}}
+
+.lunch-food-save-actions{display:flex;flex:1 0 100%;gap:10px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+@media(max-width:600px){#lunchFoodForm .lunch-food-save-actions button{width:auto;max-width:100%}}
+
+.lunch-pantry .lunch-heading{flex-wrap:wrap;align-items:center}
+.lunch-pantry .lunch-heading h3{margin:0;flex:1}
+.lunch-pantry .lunch-heading button{margin-left:auto}
+#lunchPantryForm[hidden]{display:none}
+#lunchPantryForm{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:end;margin:16px 0}
+#lunchPantryForm label{min-width:0;margin:0}
+#lunchPantryForm input,#lunchPantryForm select{height:46px;margin:5px 0 0}
+#lunchPantryForm>.lunch-pantry-actions,#lunchPantryForm>p{grid-column:1/-1}
+.lunch-pantry-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.lunch-pantry-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;border-bottom:1px solid #d9e8e3;padding:14px 0}
+.lunch-pantry-row>strong{overflow-wrap:anywhere}
+.lunch-pantry-side{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:flex-end}
+.lunch-pantry-side>span{font-variant-numeric:tabular-nums}
+.lunch-shopping-stock{display:block;color:#637c75;font-size:13px;margin-top:5px}
+.lunch-shopping-side{display:flex;flex-wrap:wrap;align-items:center;gap:8px;justify-content:flex-end}
+.lunch-shopping-side button{margin:0}
+@media(max-width:600px){#lunchPantryForm{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#lunchPantryForm>label:first-child{grid-column:1/-1}.lunch-pantry-row{grid-template-columns:minmax(0,1fr)}.lunch-pantry .lunch-heading h3{flex-basis:100%}}
+@media print{.lunch-pantry{display:none!important}}
+
+#shoppingManualForm[hidden]{display:none}
+#shoppingManualForm{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:end;margin:16px 0}
+#shoppingManualForm label{min-width:0;margin:0}
+#shoppingManualForm input,#shoppingManualForm select{height:46px;margin:5px 0 0}
+#shoppingManualForm .lunch-pantry-actions{grid-column:1/-1}
+.shopping-heading{flex-wrap:wrap}
+.shopping-heading h3{margin:0;flex:1}
+.shopping-manual-list,.shopping-legacy{margin-top:14px}
+.shopping-purchased .lunch-buy-check>span{text-decoration:line-through;color:#637c75}
+@media(max-width:600px){#shoppingManualForm{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#shoppingManualForm>label:first-child{grid-column:1/-1}.shopping-heading h3{flex-basis:100%}}
+
+@media print{#loginVersion{display:none!important}}
+
+/* Refeições+ */
+.meal-module{width:100%;min-width:0;display:grid;grid-template-columns:minmax(0,1fr);gap:16px}.meal-module>*{min-width:0;max-width:100%}.meal-module h2,.meal-module h3{margin:0 0 12px}.meal-module h4{margin:12px 0}.meal-module>.muted{margin:0}.meal-module .card{margin:0;padding:20px}.meal-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}.meal-tabs button,.meal-module button,.meal-module select,.meal-module input:not([type=checkbox]){min-height:44px}.meal-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}.meal-heading h3{margin:0}.meal-heading p{margin-bottom:0}.meal-actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px}.meal-heading>.meal-actions{margin:0}.meal-controls{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:12px 0}.meal-controls label{flex:1;min-width:160px;margin:0;display:grid;gap:5px}.meal-controls input,.meal-controls select{margin:0}.meal-controls>button{align-self:flex-end}.meal-config-row{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid #d9e7e3}.meal-config-row label{min-width:0}.meal-people{display:flex;flex-wrap:wrap;gap:16px}.meal-people label{display:flex;align-items:center;gap:7px}.meal-people input{display:inline-block;width:18px;height:18px;margin:0;accent-color:#126c62}.meal-module fieldset{min-width:0;border:1px solid #bfd5ce;border-radius:12px;padding:12px 16px}.meal-module fieldset>label{max-width:220px}.meal-library{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin-top:16px}.meal-category{min-width:0;border-top:3px solid #d9e7e3}.meal-food-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 0;border-bottom:1px solid #d9e7e3;overflow-wrap:anywhere}.meal-food-row>span{min-width:0}.meal-food-actions{display:flex;gap:6px;flex-shrink:0}.meal-food-actions button{padding:8px 10px}.meal-module small{display:block;color:#637c75;font-size:12px}.meal-ingredient-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) 44px;gap:10px;align-items:end}.meal-ingredient-row>button{margin-bottom:10px}.meal-ingredient-row label{min-width:0}.meal-plan-head,.meal-plan-row{display:grid;grid-template-columns:90px minmax(0,1fr) minmax(0,1fr);gap:18px;padding:14px 0;border-bottom:1px solid #d9e7e3}.meal-plan-head{background:#e8f4ef;padding:12px;border-radius:8px}.meal-entry{display:flex;justify-content:space-between;align-items:center;gap:12px}.meal-entry>span{min-width:0;overflow-wrap:anywhere}.meal-entry>button{flex-shrink:0}.meal-module .meal-mobile-label{display:none}.meal-breakfast-day{border-bottom:1px solid #d9e7e3;padding:8px 0 16px}.meal-breakfast-row{display:grid;grid-template-columns:130px minmax(0,1fr);gap:15px;align-items:center;padding:8px 0}.meal-week-label{max-width:200px;margin:16px 0}.meal-legacy{margin-top:22px}.meal-module #mealFoodEditor{margin:18px 0}.meal-print-week{display:none}#familyMealPrint{display:none}
+@media(max-width:800px){.meal-library{grid-template-columns:1fr}.meal-food-actions{flex-shrink:0}}
+@media(max-width:600px){.meal-module .card{padding:14px}.meal-config-row,.meal-plan-row,.meal-breakfast-row{grid-template-columns:minmax(0,1fr);gap:10px}.meal-config-row label{margin:0}.meal-plan-head{display:none}.meal-module .meal-mobile-label{display:block}.meal-ingredient-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.meal-ingredient-row label:first-child{grid-column:1/-1}.meal-ingredient-row>button{grid-column:2;justify-self:end;margin:0}.meal-controls label{flex-basis:100%;min-width:0}.meal-tabs{display:flex}.meal-tabs button{flex:1 1 140px}.meal-actions{width:100%}.meal-heading .meal-actions{justify-content:flex-end}.meal-entry button{padding:9px 11px}}
+@media print{body:has(> #familyMealPrint)>:not(#familyMealPrint){display:none!important}#familyMealPrint{display:block!important;font:9pt Arial,sans-serif;color:#173b35}#familyMealPrint .meal-print-week{display:block;border:0;padding:0;margin:0;break-before:page;page-break-before:always}#familyMealPrint .meal-print-week:first-child{break-before:auto;page-break-before:auto}#familyMealPrint h1{font-size:15pt;margin:0 0 10px}#familyMealPrint table{width:100%;border-collapse:collapse;table-layout:fixed}#familyMealPrint th,#familyMealPrint td{border:1px solid #abc6bd;padding:6px;vertical-align:top;text-align:left;overflow-wrap:anywhere}#familyMealPrint th:first-child{width:12%}#familyMealPrint small{display:block;font-size:8pt}#familyMealPrint tr{break-inside:avoid}#familyMealPrint thead{display:table-header-group}}
+.meal-module select,.meal-module input:not([type=checkbox]){height:44px}
