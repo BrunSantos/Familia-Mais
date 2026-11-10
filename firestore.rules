@@ -255,6 +255,15 @@ service cloud.firestore {
     && request.resource.data.updatedAt == request.time;
    allow delete: if shoppingOwner(ownerId);
   }
+  match /familyPreferences/{ownerId} {
+   allow get: if own(ownerId) || (signed() && activeChild(request.auth.uid) && ownerId in profile(request.auth.uid).guardianIds);
+   allow list, delete: if false;
+   allow create, update: if shoppingOwner(ownerId)
+    && request.resource.data.keys().hasOnly(['weekStart','updatedAt'])
+    && request.resource.data.keys().hasAll(['weekStart','updatedAt'])
+    && request.resource.data.weekStart is int && request.resource.data.weekStart >= 0 && request.resource.data.weekStart <= 6
+    && request.resource.data.updatedAt == request.time;
+  }
   match /familyAppLinks/{ownerId}/estuda/{linkId} {
    function ownerAdult() { return own(ownerId) && (admin() || (profile(ownerId).role == 'guardian' && profile(ownerId).status == 'active')); }
    allow read: if ownerAdult();
