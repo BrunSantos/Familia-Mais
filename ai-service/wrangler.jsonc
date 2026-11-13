@@ -1,0 +1,7 @@
+{
+ "name":"estudamais-fotografias", "main":"src/worker.js", "compatibility_date":"2026-11-13",
+ "vars":{"FIREBASE_PROJECT_ID":"estudamais-d319f","ALLOWED_ORIGIN":"https://brunsantos.github.io","FREE_TIER_CONFIRMED":"yes"},
+ "durable_objects":{"bindings":[{"name":"QUOTA","class_name":"Quota"}]},
+ "migrations":[{"tag":"v1","new_sqlite_classes":["Quota"]}],
+ "observability":{"enabled":false}
+}

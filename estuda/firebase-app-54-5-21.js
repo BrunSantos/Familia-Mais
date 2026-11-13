@@ -785,8 +785,9 @@ const epAdminBtn=el('button',{id:'epadminbtn',type:'button'},'🛡️ Administra
 async function epAdminCheck(){epAdminEnabled=false;epAdminBtn.hidden=true;if(!user)return;try{const adminSnap=await getDoc(doc(db,'admins',user.uid));epAdminEnabled=adminSnap.exists() && adminSnap.data()?.enabled===true;epAdminBtn.hidden=!epAdminEnabled}catch(e){console.warn('Permissões de administração:',e)}}
 async function epAdminPanel(){
  if(!epAdminEnabled)return;
- show('<p>Altera apenas o ano de escolaridade. Os pontos e as fichas concluídas não são modificados.</p><p id="epadminstatus">A carregar alunos…</p><div id="epadminstudents"></div><div class="epactions"><button class="epbtn" id="epadminclose">Fechar</button></div>','🛡️ Administração · Alunos');
- document.getElementById('epadminclose').onclick=hide;
+ show('<p>Altera apenas o ano de escolaridade. Os pontos e as fichas concluídas não são modificados.</p><div id="epadminphotos"></div><p id="epadminstatus">A carregar alunos…</p><div id="epadminstudents"></div><div class="epactions"><button class="epbtn" id="epadminclose">Fechar</button></div>','🛡️ Administração · Alunos');
+ document.getElementById('epadminclose').onclick=()=>{hide();void epMountPhotos();};
+ void epMountPhotos(true);
  try{
   const snapshot=await getDocs(collection(db,'users'));
   const students=snapshot.docs.filter(d=>d.data().role!=='guardian').sort((a,b)=>String(a.data().name||'').localeCompare(String(b.data().name||''),'pt'));
@@ -842,13 +843,14 @@ onAuthStateChanged(auth,u=>{if(!creatingAccount)initSession(u)});
 
 // Photographs are optional: their load errors must never block authentication.
 let epPhotoModule;
-async function epMountPhotos(){
+async function epMountPhotos(adminMode=false){
  const root=new URL('./',import.meta.url),account=user?.uid;
- if(!account||![root.pathname,new URL('index.html',root).pathname].includes(location.pathname))return;
+ if(!account||(!adminMode&&![root.pathname,new URL('index.html',root).pathname].includes(location.pathname)))return;
+ if(adminMode&&!epAdminEnabled)return;
  try{
-  epPhotoModule ||= await import('./photo-worksheets.js?v=67-ai');
+  epPhotoModule ||= await import('./photo-worksheets.js?v=68-admin');
   if(user?.uid!==account)return;
-  epPhotoModule.mountPhotoWorksheets({db,doc,getDoc,setDoc,addDoc,deleteDoc,collection,getDocs,serverTimestamp,runTransaction,refresh:async()=>{await loadHistory();updateBar();loadRanking()}},{user,profile});
+  epPhotoModule.mountPhotoWorksheets({db,doc,getDoc,setDoc,addDoc,deleteDoc,collection,getDocs,serverTimestamp,runTransaction,refresh:async()=>{await loadHistory();updateBar();loadRanking()}},{user,profile,isAdmin:epAdminEnabled,adminMode:adminMode&&epAdminEnabled});
  }catch(error){
   console.warn('Estuda+ fotografias indisponíveis:',error);
   if(user?.uid!==account)return;
