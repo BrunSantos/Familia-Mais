@@ -1,0 +1,174 @@
+import {weekDays,weekPairs,weekRank,weekSummary} from './semana-v90.js';
+import {doc,getDoc,setDoc,serverTimestamp} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const days=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+const periods={breakfast:'Pequeno-almoço',lunch:'Almoço',dinner:'Jantar'};
+const units=[['unidade','unidade(s)'],['fatia','fatia(s)'],['g','g'],['kg','kg'],['ml','ml'],['l','l'],['lata','lata(s)'],['embalagem','embalagem(ns)']];
+const empty=()=>({foods:[],plans:[],config:{lunchWeek:'school',lunchEnd:'home',dinnerWeek:'home',dinnerEnd:'home',participants:[],adults:0,breakfast:{},weeks:1,weekend:true}});
+let saving=false;
+let state=empty(),dbRef=null,owner='',kids=[],ready=false,error='',section='plan',view='common',week=1,notify=()=>{};
+export function resetMeals(){clearMealPrint();state=empty();dbRef=null;owner='';kids=[];ready=false;error='';section='plan';view='common';week=1;}
+export async function startMeals(db,uid,children,notice){resetMeals();dbRef=db;owner=uid;kids=children;notify=notice;try{const snap=await getDoc(doc(db,'mealSettings',uid));if(snap.exists()){const data=snap.data();state={foods:Array.isArray(data.foods)?data.foods:[],plans:Array.isArray(data.plans)?data.plans.map(normalizeAdditionalDrink):[],config:{...empty().config,...data.config}};}else state.config.participants=kids.map(k=>k.uid);ready=true;}catch(e){error='Não foi possível carregar o Refeições+. Confirma a ligação e publica as regras da versão 83 no Firebase.';}}
+export function setMealChildren(children){kids=children;}
+function requireReady(){if(!ready)throw Error(error||'O Refeições+ ainda está a carregar.');}
+async function persist(next){requireReady();next={...next,plans:next.plans.map(normalizeAdditionalDrink)};if(saving)throw Error('Aguarda a gravação em curso e tenta novamente.');if(next.foods.length>150||next.plans.length>1000)throw Error('Limite atingido: até 150 refeições e 1000 entradas no plano.');if(new TextEncoder().encode(JSON.stringify(next)).length>850000)throw Error('O plano é demasiado grande. Reduz as semanas ou os ingredientes.');const account=owner,current=state;saving=true;try{await setDoc(doc(dbRef,'mealSettings',account),{...next,updatedAt:serverTimestamp()});if(owner!==account||state!==current)throw Error('A conta mudou durante a gravação. Volta a carregar o plano.');state=next;}finally{saving=false;}}
+const recipe=id=>state.foods.find(f=>f.id===id);
+const kidName=(id,fallback='Filho')=>kids.find(k=>k.uid===id)?.name||fallback;
+const options=(pairs,value)=>pairs.map(([v,label])=>`<option value="${esc(v)}" ${v===value?'selected':''}>${esc(label)}</option>`).join('');
+const baseConfig=(kind,end)=>state.config[kind+(end?'End':'Week')];
+const breakfastIncluded=(id,end)=>state.config.breakfast?.[id]?.[end?'end':'week']!==false;
+function candidates(kind,id=''){return state.foods.filter(f=>f.kinds.includes(kind)&&(kind!=='breakfast'||!f.children.length||f.children.includes(id)));}
+function participants(){return kids.filter(k=>state.config.participants.includes(k.uid));}
+// Match slots to distinct normalized recipe names; flexible recipes can be reassigned
+// so a lunch choice never unnecessarily consumes the only dinner option.
+const foodKey=f=>String(f.name).normalize('NFC').trim().toLocaleLowerCase('pt-PT').replace(/\s+/g,' ');
+function assignUnique(slots,rotation,label){
+ const pools=slots.map(slot=>{const list=candidates(slot.period,slot.kidId),n=list.length,offset=n?rotation%n:0;return list.slice(offset).concat(list.slice(0,offset));});
+ const occupied=new Map(),selected=new Map();
+ function match(index,seen){for(const f of pools[index]){const key=foodKey(f);if(seen.has(key))continue;seen.add(key);const previous=occupied.get(key);if(previous===undefined||match(previous,seen)){occupied.set(key,index);selected.set(index,f);return true;}}return false;}
+ for(let i=0;i<slots.length;i++)if(!match(i,new Set()))throw Error('Faltam receitas diferentes e compatíveis para '+label+'. São necessárias '+slots.length+' opções sem repetir na semana. Adiciona receitas ou reduz os dias em casa. O plano anterior foi mantido.');
+ return slots.map((slot,i)=>({...slot,foodId:selected.get(i).id,foodName:selected.get(i).name}));
+}
+// Breakfasts are planned together: on any day, unrestricted recipes share one
+// choice. Only child-specific recipes may override that day's common breakfast.
+function assignBreakfasts(w,count){
+ const slots=[];
+ for(const day of weekDays(count===7))for(const k of kids)if(breakfastIncluded(k.uid,day>4))slots.push({id:crypto.randomUUID(),week:w,day,period:'breakfast',kidId:k.uid,kidName:k.name,participants:[k.uid],participantNames:[k.name],adults:0,portions:1});
+ const used=new Map(kids.map(k=>[k.uid,new Set()])),shared=new Map(),chosen=[],failed=new Set();let attempts=0;
+ const list=state.foods.filter(f=>f.kinds.includes('breakfast'));
+ const pools=slots.map(p=>{const offset=list.length?(w-1+p.day)%list.length:0;return list.slice(offset).concat(list.slice(0,offset)).filter(f=>!f.children.length||f.children.includes(p.kidId));});
+ const eligible=(f,p)=>!used.get(p.kidId).has(foodKey(f))&&(f.children.length||!shared.has(p.day)||shared.get(p.day)===foodKey(f));
+ // Prune impossible branches using an exact distinct-name matching per child.
+ function feasible(start){
+  for(const k of kids){const indices=[];for(let i=start;i<slots.length;i++)if(slots[i].kidId===k.uid)indices.push(i);const occupied=new Map();
+   function match(index,seen){for(const f of pools[index])if(eligible(f,slots[index])){const key=foodKey(f);if(seen.has(key))continue;seen.add(key);const prev=occupied.get(key);if(prev===undefined||match(prev,seen)){occupied.set(key,index);return true;}}return false;}
+   for(const i of indices)if(!match(i,new Set()))return false;
+  }return true;
+ }
+ function solve(index){
+  if(index===slots.length)return true;
+  if(++attempts>100000)throw Error('Não foi possível conciliar os pequenos-almoços sem repetir. Adiciona mais opções para todos ou ajusta as preferências. O plano anterior foi mantido.');
+  const signature=JSON.stringify([index,[...shared],[...used].map(([id,keys])=>[id,[...keys].sort()])]);if(failed.has(signature))return false;
+  const p=slots[index];
+  for(const f of pools[index])if(eligible(f,p)){
+   const key=foodKey(f),setsShared=!f.children.length&&!shared.has(p.day);if(setsShared)shared.set(p.day,key);used.get(p.kidId).add(key);chosen[index]={...p,foodId:f.id,foodName:f.name};
+   if(feasible(index+1)&&solve(index+1))return true;
+   used.get(p.kidId).delete(key);if(setsShared)shared.delete(p.day);
+  }
+  failed.add(signature);return false;
+ }
+ if(!feasible(0)||!solve(0))throw Error('Faltam pequenos-almoços diferentes e compatíveis para todos os filhos. As opções para todos têm de coincidir no mesmo dia, sem repetir na semana para cada filho. Adiciona receitas ou ajusta os dias. O plano anterior foi mantido.');
+ return chosen;
+}
+function breakfastChanges(p,f){
+ const peers=state.plans.filter(row=>row.week===p.week&&row.day===p.day&&row.period==='breakfast'&&!row.status);
+ const changes=(f.children.length?[p]:peers).map(row=>({...row,foodId:f.id,foodName:f.name}));
+ for(const row of changes)if(row.foodId!==state.plans.find(old=>old.id===row.id)?.foodId)assertUniqueEntry(row);
+ return changes;
+}
+function supportsAdditionalDrink(p){return !!p?.foodId&&!p.status&&['lunch','dinner'].includes(p.period);}
+function normalizeAdditionalDrink(p){if(supportsAdditionalDrink(p))return p;const {drinkId,drinkName,...clean}=p;return clean;}
+function buildMealPlan(weeks,weekend){
+ const result=[],count=weekend?7:5,people=participants(),adults=Number(state.config.adults)||0;
+ if(![1,2,4,8].includes(weeks))throw Error('Escolhe entre 1 e 8 semanas.');
+ const includedKids=kids.filter(k=>breakfastIncluded(k.uid,false)||(weekend&&breakfastIncluded(k.uid,true)));
+ if(!includedKids.length&&!people.length&&!adults)throw Error('Seleciona quem vai comer na configuração.');
+ for(let w=1;w<=weeks;w++){
+  result.push(...assignBreakfasts(w,count));
+  const common=[];
+  if(people.length||adults)for(const d of weekDays(weekend))for(const kind of ['lunch','dinner']){
+   const setting=baseConfig(kind,d>4),slot={id:crypto.randomUUID(),week:w,day:d,period:kind,participants:people.map(k=>k.uid),participantNames:people.map(k=>k.name),adults,portions:people.length+adults};
+   if(setting!=='home')result.push({...slot,status:setting,portions:0});else common.push(slot);
+  }
+  result.push(...assignUnique(common,w-1,'os almoços e jantares em família'));
+ }
+ if(!result.some(p=>p.foodId))throw Error('Não há refeições em casa selecionadas. Ajusta a configuração.');
+ return result.sort((a,b)=>a.week-b.week||weekRank(a.day)-weekRank(b.day)||['breakfast','lunch','dinner'].indexOf(a.period)-['breakfast','lunch','dinner'].indexOf(b.period));
+}
+function assertUniqueEntry(entry,foods=state.foods){
+ const f=foods.find(f=>f.id===entry.foodId);if(!f)return;
+ const clash=state.plans.some(p=>p.id!==entry.id&&p.week===entry.week&&!p.status&&
+  (entry.period==='breakfast'?p.period==='breakfast'&&p.kidId===entry.kidId:p.period!=='breakfast')&&
+  foods.some(other=>other.id===p.foodId&&foodKey(other)===foodKey(f)));
+ if(clash)throw Error('Esta refeição já está na semana '+entry.week+(entry.period==='breakfast'?' para este filho':' nos almoços ou jantares')+'. Escolhe outra receita.');
+}
+export function mealShoppingData(){
+ const ingredients=[],pending=[],articles=state.foods.flatMap(f=>(f.ingredients||[]).map(i=>i.name));
+ if(!ready)return {ingredients,articles:[],pending:[{name:error||'Refeições+ por carregar',module:'meals'}]};
+ for(const p of state.plans){if(p.status)continue;
+  for(const [id,name] of [[p.foodId,p.foodName],...(supportsAdditionalDrink(p)&&p.drinkId?[[p.drinkId,p.drinkName]]:[])]){
+   const f=recipe(id);if(!f?.ingredients?.length||!Number.isFinite(p.portions)||p.portions<=0||f.ingredients.some(i=>!i.name||!Number.isFinite(Number(i.quantity))||Number(i.quantity)<=0||!units.some(([u])=>u===i.unit))){pending.push({name:name||'Refeição sem ingredientes',module:'meals',recipeId:id});continue;}
+   for(const i of f.ingredients)ingredients.push({...i,quantity:Number(i.quantity)*p.portions});
+  }
+ }
+ return {ingredients,pending,articles};
+}
+function ingredientRow(item={name:'',quantity:'',unit:'unidade'}){return `<div class="meal-ingredient-row"><label>Artigo<input name="ingredientName" maxlength="80" value="${esc(item.name)}" required></label><label>Quantidade por porção<input name="ingredientQuantity" type="number" min="0.001" max="100000" step="any" value="${esc(item.quantity)}" required></label><label>Unidade<select name="ingredientUnit">${options(units,item.unit)}</select></label><button type="button" class="alt" data-meal="ingredientRemove" aria-label="Remover ingrediente">×</button></div>`;}
+function foodEditor(id='',name=''){
+ const f=recipe(id)||{name,kinds:['breakfast'],children:[],ingredients:[]};
+ return `<div class="card" id="mealFoodEditor"><h3>${id?'Editar':'Adicionar'} refeição</h3><form id="mealFoodForm" data-id="${esc(id)}"><div class="meal-controls"><label>Nome<input name="name" maxlength="100" required value="${esc(f.name)}" placeholder="Ex.: Frango no forno com arroz"></label><label>Disponível para<select name="kind" data-meal-kind>${options([['breakfast','Pequeno-almoço'],['lunch','Almoço'],['dinner','Jantar'],['both','Almoço e jantar'],['drink','Bebida']],f.kinds.includes('breakfast')?'breakfast':f.kinds.length===2?'both':f.kinds[0])}</select></label><label id="mealPreferenceLabel" ${f.kinds.includes('breakfast')?'':'hidden'}>Pequeno-almoço para<select name="child"><option value="">Todos / sem distinção</option>${options(kids.map(k=>[k.uid,k.name]),f.children.length===1?f.children[0]:'')}${f.children.length>1?'<option value="__keep" selected>Manter filhos associados</option>':''}</select></label></div><h4>Ingredientes por porção</h4><p class="muted">Indica artigos para comprar e a quantidade para uma pessoa. As compras multiplicam pelas porções do plano.</p><div id="mealIngredients">${(f.ingredients.length?f.ingredients:[{}]).map(i=>ingredientRow(i.name?i:undefined)).join('')}</div><button type="button" class="alt" data-meal="ingredientAdd">Adicionar ingrediente</button><div class="meal-actions"><button type="button" class="alt" data-meal="cancelFood">Cancelar</button><button>Guardar refeição</button></div></form></div>`;
+}
+function legacyItems(){try{return JSON.parse(localStorage.getItem('familiamais_planner_v2')||'[]').filter(x=>x.type==='refeicoes');}catch{return [];}}
+function library(){
+ return `<div class="card"><div class="meal-heading"><h3>Biblioteca de refeições (${state.foods.length})</h3><button type="button" data-meal="addFood" ${ready?'':'disabled'}>Adicionar refeição</button></div><div id="mealEditorHost"></div><div class="meal-library">${Object.entries({...periods,drink:'Bebidas'}).map(([kind,title])=>`<div class="meal-category"><h4>${title}</h4>${state.foods.filter(f=>f.kinds.includes(kind)).map(f=>`<div class="meal-food-row"><span><strong>${esc(f.name)}</strong><small>${kind==='breakfast'?(f.children.length?f.children.map(id=>esc(kidName(id,'Perfil indisponível'))).join(', '):'Todos / sem distinção'):'Em família'} · ${f.ingredients.length} ingredientes por porção</small></span><div class="meal-food-actions"><button type="button" class="alt" data-meal="editFood" data-id="${esc(f.id)}">Editar</button><button type="button" class="alt" data-meal="deleteFood" data-id="${esc(f.id)}" aria-label="Apagar ${esc(f.name)}">×</button></div></div>`).join('')||'<p class="muted">Ainda sem refeições.</p>'}</div>`).join('')}</div>${legacyItems().length?`<details class="meal-legacy"><summary>Registos anteriores deste navegador (${legacyItems().length})</summary><p class="muted">Os registos antigos foram mantidos. Cria uma receita com os respetivos ingredientes antes de gerar o plano.</p>${legacyItems().map(x=>`<div class="meal-food-row"><span>${esc(x.title)}<small>${esc(x.date)} · ${esc(x.detail)}</small></span><button class="alt" type="button" data-meal="importLegacy" data-id="${esc(x.id)}">Criar receita</button></div>`).join('')}</details>`:''}</div>`;
+}
+function configView(){
+ const c=state.config,common=[['home','Em casa'],['school','Na escola / fora'],['off','Não incluir']];
+ return `<form id="mealConfigForm"><div class="card"><h3>Almoços e jantares em família</h3><p class="muted">Uma refeição comum. Cada pessoa selecionada representa uma porção.</p><fieldset><legend>Quem vai comer?</legend><div class="meal-people">${kids.map(k=>`<label><input type="checkbox" name="participants" value="${esc(k.uid)}" ${c.participants.includes(k.uid)?'checked':''}> ${esc(k.name)}</label>`).join('')}</div><label>Adultos / outras pessoas<input type="number" min="0" max="20" name="adults" value="${c.adults}"></label></fieldset>${['lunch','dinner'].map(kind=>`<div class="meal-config-row"><strong>${periods[kind]}</strong><label>Segunda a sexta<select name="${kind}Week">${options(common,c[kind+'Week'])}</select></label><label>Sábado e domingo<select name="${kind}End">${options(common,c[kind+'End'])}</select></label></div>`).join('')}</div><div class="card"><h3>Pequenos-almoços por filho</h3><p class="muted">As opções para todos são iguais nesse dia. Só as receitas específicas de um filho permitem diferenças. Inclui a bebida nos ingredientes do próprio pequeno-almoço.</p>${kids.map(k=>`<div class="meal-config-row"><strong>${esc(k.name)}</strong>${[['week','Segunda a sexta'],['end','Sábado e domingo']].map(([type,label])=>`<label>${label}<select name="breakfast:${esc(k.uid)}:${type}">${options([['yes','Incluir'],['no','Não incluir']],breakfastIncluded(k.uid,type==='end')?'yes':'no')}</select></label>`).join('')}</div>`).join('')||'<p>Adiciona filhos na Família+ para planear os pequenos-almoços.</p>'}<div class="meal-actions"><button ${ready?'':'disabled'}>Guardar configuração</button></div><p class="muted">As alterações só afetam o próximo plano gerado. O plano atual mantém as pessoas e porções já guardadas.</p></div></form>`;
+}
+function entryText(p){return p?.status==='school'?'Na escola / fora':p?.status==='off'?'Não incluído':p?.foodName||'Não incluído';}
+function drinkPicker(p){if(!supportsAdditionalDrink(p))return '';const drinks=candidates('drink');return `<label class="meal-drink-label">Bebida<select data-meal-drink="${esc(p.id)}" aria-label="Bebida de ${esc(periods[p.period])} · ${days[p.day]} · ${esc(p.kidName||'Família')}" ${ready?'':'disabled'}>${options([['','Sem bebida'],...drinks.map(f=>[f.id,f.name])],p.drinkId||'')}${p.drinkId&&!drinks.some(f=>f.id===p.drinkId)?`<option value="${esc(p.drinkId)}" selected>${esc(p.drinkName||'Bebida indisponível')}</option>`:''}</select>${!drinks.length?'<small>Adiciona bebidas na biblioteca.</small>':''}</label>`;}
+function entryCell(p){return `<div class="meal-entry-with-drink"><div class="meal-entry"><span>${esc(entryText(p))}${p?.foodId?`<small>${p.period==='breakfast'?'':`${p.portions} porções · `}${p.participantNames?.map(esc).join(', ')||''}${p.adults?` + ${p.adults} adulto(s)`:''}</small>`:''}</span>${p?.foodId?`<button type="button" class="alt" data-meal="editEntry" data-id="${esc(p.id)}">Editar</button>`:''}</div>${p?.foodId?drinkPicker(p):''}</div>`;}
+function printEntryText(p){return entryText(p)+(supportsAdditionalDrink(p)&&p.drinkId?' · Bebida: '+(p.drinkName||'Indisponível'):'');}
+function planView(){
+ const weeks=[...new Set(state.plans.map(p=>p.week))].sort((a,b)=>a-b);if(!weeks.includes(week))week=weeks[0]||1;
+ const rows=state.plans.filter(p=>p.week===week),dayList=[...new Set(rows.map(p=>p.day))].sort((a,b)=>weekRank(a)-weekRank(b));
+ return `<div class="card"><h3>Gerar plano</h3>${weekSummary()}<form id="mealGenerateForm" class="meal-controls"><label>Semanas<select name="weeks">${options([1,2,4,8].map(n=>[n,String(n)]),state.config.weeks)}</select></label><label>Fins de semana<select name="weekend">${options([['yes','Incluir sábado e domingo'],['no','Só segunda a sexta']],state.config.weekend?'yes':'no')}</select></label><button ${ready?'':'disabled'}>Gerar refeições</button></form><p class="muted">Sem repetir receitas na mesma semana: entre almoços e jantares, e nos pequenos-almoços de cada filho. Se faltarem opções, o plano anterior é mantido. Os pequenos-almoços para todos são iguais no mesmo dia; só as opções específicas de cada filho podem ser diferentes. A bebida adicional é opcional nos almoços e jantares em casa, em qualquer dia da semana. O pequeno-almoço já inclui a bebida na receita.</p>${!state.foods.length?'<p class="muted">Começa por adicionar as tuas receitas e ingredientes na biblioteca.</p><button type="button" class="alt" data-meal="tab" data-section="foods">Abrir biblioteca</button>':''}</div>${state.plans.length?`<div class="card"><div class="meal-heading"><h3>Plano de refeições</h3><div class="meal-actions"><button class="alt" type="button" data-meal="print">Imprimir</button><button class="alt" type="button" data-meal="clear">Apagar plano</button></div></div><label class="meal-week-label">Semana<select data-meal-week>${options(weeks.map(n=>[n,'Semana '+n]),week)}</select></label><div class="meal-tabs"><button type="button" class="${view==='common'?'':'alt'}" data-meal="view" data-view="common">Almoço e jantar</button><button type="button" class="${view==='breakfast'?'':'alt'}" data-meal="view" data-view="breakfast">Pequenos-almoços por filho</button></div><div id="mealEntryEditor"></div>${view==='common'?`<div class="meal-plan-head"><strong>Dia</strong><strong>Almoço</strong><strong>Jantar</strong></div>${dayList.map(day=>`<div class="meal-plan-row"><strong>${days[day]}</strong><div><small class="meal-mobile-label">Almoço</small>${entryCell(rows.find(p=>p.day===day&&p.period==='lunch'))}</div><div><small class="meal-mobile-label">Jantar</small>${entryCell(rows.find(p=>p.day===day&&p.period==='dinner'))}</div></div>`).join('')}`:dayList.map(day=>`<div class="meal-breakfast-day"><h4>${days[day]}</h4>${rows.filter(p=>p.day===day&&p.period==='breakfast').map(p=>`<div class="meal-breakfast-row"><strong>${esc(kidName(p.kidId,p.kidName))}</strong>${entryCell(p)}</div>`).join('')||'<p class="muted">Pequeno-almoço não incluído.</p>'}</div>`).join('')}</div>`:'<div class="card"><h3>Plano de refeições</h3><p class="muted">Ainda não geraste um plano.</p></div>'}<div class="card meal-heading"><div><h3>Ingredientes para comprar</h3><p class="muted">Refeições e lanches reunidos em Compras+, descontando o que já tens em casa.</p></div><button class="alt" type="button" data-go="compras">Ver Compras+</button></div>`;
+}
+export function mealsView(){return `<section class="meal-module"><h2>🍽️ Refeições+</h2><p class="muted">Pequenos-almoços à medida de cada filho. Almoços e jantares em família.</p>${!ready?`<p role="alert">${esc(error||'A carregar…')}</p><button class="alt" type="button" data-meal="retry">Tentar carregar novamente</button>`:''}<nav class="meal-tabs" aria-label="Secções das refeições">${[['plan','Plano de refeições'],['config','Configurar refeições'],['foods','Biblioteca de refeições']].map(([id,title])=>`<button type="button" class="${section===id?'':'alt'}" data-meal="tab" data-section="${id}" aria-pressed="${section===id}">${title}</button>`).join('')}</nav>${section==='config'?configView():section==='foods'?library():planView()}</section>`;}
+function readRecipe(form){const fd=new FormData(form),name=String(fd.get('name')||'').trim(),kind=fd.get('kind'),child=String(fd.get('child')||'');if(!name||name.length>100||!['breakfast','lunch','dinner','both','drink'].includes(kind))throw Error('Indica um nome e um tipo de refeição válido.');const ns=fd.getAll('ingredientName'),qs=fd.getAll('ingredientQuantity'),us=fd.getAll('ingredientUnit');const ingredients=ns.map((n,i)=>({name:String(n).trim(),quantity:Number(qs[i]),unit:String(us[i])}));if(!ingredients.length||ingredients.length>30||ingredients.some(i=>!i.name||i.name.length>80||!Number.isFinite(i.quantity)||i.quantity<=0||i.quantity>100000||!units.some(([u])=>u===i.unit)))throw Error('Define entre 1 e 30 ingredientes, com quantidade positiva e unidade.');const old=recipe(form.dataset.id);return {id:old?.id||crypto.randomUUID(),name,kinds:kind==='both'?['lunch','dinner']:[kind],children:kind==='breakfast'?(child==='__keep'?old?.children||[]:kids.filter(k=>k.uid===child).map(k=>k.uid)):[],ingredients};}
+function readConfig(form){const fd=new FormData(form),c={...state.config,participants:kids.filter(k=>fd.getAll('participants').includes(k.uid)).map(k=>k.uid),adults:Number(fd.get('adults')),breakfast:{}};if(!Number.isInteger(c.adults)||c.adults<0||c.adults>20)throw Error('Indica entre 0 e 20 adultos / outras pessoas.');for(const key of ['lunchWeek','lunchEnd','dinnerWeek','dinnerEnd']){c[key]=String(fd.get(key));if(!['home','school','off'].includes(c[key]))throw Error('Configuração inválida.');}for(const k of kids)c.breakfast[k.uid]={week:fd.get('breakfast:'+k.uid+':week')==='yes',end:fd.get('breakfast:'+k.uid+':end')==='yes'};return c;}
+export async function mealSubmit(e,render){if(!e.target.id.startsWith('meal'))return false;e.preventDefault();const form=e.target,button=e.submitter;if(button)button.disabled=true;try{requireReady();if(form.id==='mealFoodForm'){
+ const food=readRecipe(form);const used=state.plans.filter(p=>p.foodId===food.id);if(used.some(p=>!food.kinds.includes(p.period)||(p.period==='breakfast'&&food.children.length&&!food.children.includes(p.kidId))))throw Error('Esta receita está no plano com outro tipo ou filho. Mantém essa associação ou substitui primeiro as refeições no plano.');
+ const foods=state.foods.filter(f=>f.id!==food.id);foods.push(food);if(used.length&&foodKey(food)!==foodKey(recipe(food.id)))for(const p of used)assertUniqueEntry(p,foods);if(state.plans.some(p=>p.drinkId===food.id)&&!food.kinds.includes('drink'))throw Error('Esta bebida está no plano. Remove-a primeiro das refeições antes de alterar o tipo.');const plans=state.plans.map(p=>({...p,...(p.foodId===food.id?{foodName:food.name}:{}),...(p.drinkId===food.id?{drinkName:food.name}:{})}));await persist({...state,foods,plans});section='foods';render();notify('Receita guardada. As compras foram atualizadas.');
+ }else if(form.id==='mealConfigForm'){const config=readConfig(form);await persist({...state,config});section='plan';render();notify('Configuração guardada. Será usada no próximo plano.');
+ }else if(form.id==='mealGenerateForm'){const fd=new FormData(form),weeks=Number(fd.get('weeks')),weekend=fd.get('weekend')==='yes';const plans=buildMealPlan(weeks,weekend);if(state.plans.length&&!confirm('Substituir o plano de refeições atual? Os lanches mantêm-se.'))return true;await persist({...state,plans,config:{...state.config,weeks,weekend}});week=1;render();notify('Plano de refeições guardado. Ingredientes atualizados em Compras+.');
+ }else if(form.id==='mealEntryForm'){const fd=new FormData(form),p=state.plans.find(p=>p.id===form.dataset.id),f=recipe(fd.get('foodId'));if(!p||!f||!f.kinds.includes(p.period))throw Error('Escolhe uma refeição válida.');if(p.period==='breakfast'&&f.children.length&&!f.children.includes(p.kidId))throw Error('Este pequeno-almoço não está associado ao filho.');let entry={...p,foodId:f.id,foodName:f.name};let breakfastUpdates=null;if(p.period==='breakfast')breakfastUpdates=breakfastChanges(p,f);else if(f.id!==p.foodId)assertUniqueEntry(entry);if(p.period!=='breakfast'){const people=kids.filter(k=>fd.getAll('participants').includes(k.uid)),adults=Number(fd.get('adults'));if(!Number.isInteger(adults)||adults<0||adults>20||!people.length&&!adults)throw Error('Seleciona pelo menos uma pessoa e um número válido de adultos.');entry={...entry,participants:people.map(k=>k.uid),participantNames:people.map(k=>k.name),adults,portions:people.length+adults};}await persist({...state,plans:state.plans.map(row=>breakfastUpdates?breakfastUpdates.find(changed=>changed.id===row.id)||row:row.id===p.id?entry:row)});render();notify('Refeição e ingredientes para comprar atualizados.');}else return false;return true;}finally{if(button)button.disabled=false;}}
+export function openMealRecipe(id,render,name=''){section='foods';render();const host=document.getElementById('mealEditorHost');if(host){host.innerHTML=foodEditor(id,name);host.querySelector('input')?.focus();host.scrollIntoView?.({block:'nearest',behavior:'smooth'});}}
+export async function mealChange(e,render){if(e.target.matches('[data-meal-drink]')){
+ const select=e.target,p=state.plans.find(p=>p.id===select.dataset.mealDrink),id=select.value;
+ if(!supportsAdditionalDrink(p))throw Error('Escolhe uma bebida apenas para um almoço ou jantar em casa.');const f=id?recipe(id):null;
+ if(id&&!f?.kinds.includes('drink'))throw Error('Escolhe uma bebida válida.');
+ select.disabled=true;try{const entry={...p};if(f){entry.drinkId=f.id;entry.drinkName=f.name;}else{delete entry.drinkId;delete entry.drinkName;}
+ await persist({...state,plans:state.plans.map(row=>row.id===p.id?entry:row)});render();notify('Bebida guardada. Compras atualizadas.');
+ }catch(err){select.value=p.drinkId||'';throw err;}finally{select.disabled=false;}return true;
+ }if(e.target.matches('[data-meal-week]')){week=Number(e.target.value);render();return true;}if(e.target.matches('[data-meal-kind]')){document.getElementById('mealPreferenceLabel').hidden=e.target.value!=='breakfast';return true;}return false;}
+// A self-contained print document avoids repaginating the entire application.
+// Keep one reusable frame; replace it when content changes, and discard on logout.
+let mealPrintFrame=null,mealPrintMarkup='',mealPrintBusy=false;
+function clearMealPrint(){mealPrintFrame?.remove();mealPrintFrame=null;mealPrintMarkup='';}
+function mealPrintDocument(){
+ const weeks=new Map();
+ for(const p of state.plans){if(!weeks.has(p.week))weeks.set(p.week,new Map());const byDay=weeks.get(p.week);if(!byDay.has(p.day))byDay.set(p.day,{breakfast:[]});const day=byDay.get(p.day);if(p.period==='breakfast')day.breakfast.push(p);else day[p.period]=p;}
+ const html=[...weeks].sort(([a],[b])=>a-b).map(([w,byDay])=>`<section class="meal-print-week"><header class="meal-print-header"><div class="meal-print-brand"><span aria-hidden="true">🏡</span> Família+</div><h1>Plano de refeições</h1><p class="meal-print-subtitle">Semana ${w}</p></header><table><thead><tr><th>Dia</th><th>Pequenos-almoços</th><th>Almoço</th><th>Jantar</th></tr></thead><tbody>${[...byDay].sort(([a],[b])=>weekRank(a)-weekRank(b)).map(([d,row])=>`<tr><td>${esc(days[d])}</td><td>${row.breakfast.map(p=>`<div><strong>${esc(kidName(p.kidId,p.kidName))}:</strong> ${esc(printEntryText(p))}</div>`).join('')||'—'}</td>${['lunch','dinner'].map(kind=>{const p=row[kind];return `<td>${esc(printEntryText(p))}${p?.foodId?`<small>${p.portions} porções · ${(p.participantNames||[]).map(esc).join(', ')}${p.adults?' + '+p.adults+' adulto(s)':''}</small>`:''}</td>`}).join('')}</tr>`).join('')}</tbody></table></section>`).join('');
+ return `<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><title>Plano de refeições · Família+</title><style>@page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#173b35;font:9pt Arial,sans-serif}.meal-print-week{break-before:page;page-break-before:always;padding-top:6mm}.meal-print-brand{font-size:19pt;font-weight:bold;margin:0 0 8mm}.meal-print-brand span{font-size:22pt;vertical-align:middle;margin-right:2mm}.meal-print-subtitle{font-size:10pt;margin:0;color:#617c74}.meal-print-header{margin-bottom:8mm}.meal-print-week:first-child{break-before:auto;page-break-before:auto}h1{font-size:15pt;margin:0 0 3mm}table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #abc6bd;padding:6px;vertical-align:top;text-align:left;overflow-wrap:anywhere}th:first-child{width:12%}small{display:block;font-size:8pt}tr{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}</style></head><body>${html}</body></html>`;
+}
+function printPlan(button){
+ if(mealPrintBusy)return;
+ if(!state.plans.length)throw Error('Gera um plano de refeições antes de imprimir.');
+ mealPrintBusy=true;const originalText=button?.textContent;
+ if(button){button.disabled=true;button.textContent='A preparar…';}
+ try{
+  const markup=mealPrintDocument();
+  if(!mealPrintFrame?.isConnected||markup!==mealPrintMarkup){
+   clearMealPrint();
+   const frame=document.createElement('iframe');frame.id='familyMealPrintFrame';frame.title='Impressão do plano de refeições';frame.setAttribute('aria-hidden','true');frame.setAttribute('tabindex','-1');frame.style.cssText='position:fixed;left:-10000px;top:0;width:1px;height:1px;border:0;pointer-events:none';
+   document.body.append(frame);mealPrintFrame=frame;
+   const printDoc=frame.contentDocument;if(!printDoc)throw Error('Não foi possível preparar a impressão. Tenta novamente.');
+   printDoc.open();printDoc.write(markup);printDoc.close();mealPrintMarkup=markup;
+  }
+  if(button)button.textContent='A imprimir…';
+  mealPrintFrame.contentWindow.focus();mealPrintFrame.contentWindow.print();
+ }catch(err){clearMealPrint();throw err;}finally{mealPrintBusy=false;if(button){button.disabled=false;button.textContent=originalText;}}
+}
+export async function mealClick(e,render){const b=e.target.closest('[data-meal]');if(!b)return false;const {meal:action,id}=b.dataset;if(action==='tab'){section=b.dataset.section;render();}else if(action==='view'){view=b.dataset.view;render();}else if(action==='addFood'||action==='editFood'){requireReady();openMealRecipe(id,render);}else if(action==='cancelFood'){document.getElementById('mealEditorHost').replaceChildren();}else if(action==='ingredientAdd'){const host=document.getElementById('mealIngredients');if(host.children.length>=30)throw Error('Até 30 ingredientes por receita.');host.insertAdjacentHTML('beforeend',ingredientRow());}else if(action==='ingredientRemove'){if(document.getElementById('mealIngredients').children.length>1)b.closest('.meal-ingredient-row').remove();else throw Error('A receita precisa de pelo menos um ingrediente.');}else if(action==='deleteFood'){requireReady();if(state.plans.some(p=>p.foodId===id||p.drinkId===id))throw Error('Esta receita está no plano. Substitui essas refeições ou apaga o plano antes de remover a receita.');if(confirm('Apagar esta receita da biblioteca?')){await persist({...state,foods:state.foods.filter(f=>f.id!==id)});render();}}else if(action==='clear'){if(confirm('Apagar o plano de refeições? A biblioteca, os lanches e os artigos de casa mantêm-se.')){await persist({...state,plans:[]});render();notify('Plano de refeições apagado. Compras atualizadas.');}}else if(action==='print'){printPlan(b);}else if(action==='cancelEntry'){document.getElementById('mealEntryEditor').replaceChildren();}else if(action==='editEntry'){const p=state.plans.find(p=>p.id===id);if(!p)return true;document.getElementById('mealEntryEditor').innerHTML=`<div class="card"><h3>Editar ${periods[p.period].toLowerCase()} · ${days[p.day]}</h3><form id="mealEntryForm" data-id="${esc(id)}"><label>Refeição<select name="foodId">${options(candidates(p.period,p.kidId).filter(f=>{try{if(p.period==='breakfast')breakfastChanges(p,f);else if(f.id!==p.foodId)assertUniqueEntry({...p,foodId:f.id});return true;}catch{return false;}}).map(f=>[f.id,f.name]),p.foodId)}</select></label>${p.period!=='breakfast'?`<fieldset><legend>Quem vai comer?</legend><div class="meal-people">${kids.map(k=>`<label><input type="checkbox" name="participants" value="${esc(k.uid)}" ${p.participants.includes(k.uid)?'checked':''}> ${esc(k.name)}</label>`).join('')}</div><label>Adultos / outras pessoas<input type="number" name="adults" min="0" max="20" value="${p.adults}"></label></fieldset>`:`<p>${esc(kidName(p.kidId,p.kidName))}</p><p class="muted">Uma opção para todos será aplicada a todos os filhos com pequeno-almoço neste dia. Uma opção específica altera apenas este filho.</p>`}<div class="meal-actions"><button type="button" class="alt" data-meal="cancelEntry">Cancelar</button><button>Guardar refeição</button></div></form></div>`;document.getElementById('mealEntryEditor').scrollIntoView?.({block:'nearest',behavior:'smooth'});}else if(action==='importLegacy'){const x=legacyItems().find(x=>x.id===id);if(x)openMealRecipe('',render,x.title);}else if(action==='retry'){await startMeals(dbRef,owner,kids,notify);render();}return true;}
