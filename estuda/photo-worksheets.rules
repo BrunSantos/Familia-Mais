@@ -1,0 +1,18 @@
+// Acrescentar dentro de match /databases/{database}/documents nas regras do projeto estudamais-d319f.
+// Preservar todas as regras existentes; este bloco usa as funções owner(uid) e guardian(uid).
+   match /users/{uid}/photoWorksheets/{worksheetId} {
+    allow get, list: if owner(uid) || guardian(uid);
+    allow create: if (owner(uid) || guardian(uid))
+      && request.resource.data.keys().hasOnly(['title','sourceText','questions','year','subject','topic','createdBy','createdAt','version'])
+      && request.resource.data.createdBy == request.auth.uid
+      && request.resource.data.createdAt == request.time
+      && request.resource.data.version == 1
+      && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 150
+      && request.resource.data.sourceText is string && request.resource.data.sourceText.size() <= 16000
+      && request.resource.data.questions is list && request.resource.data.questions.size() >= 2 && request.resource.data.questions.size() <= 15
+      && request.resource.data.year is int && request.resource.data.year >= 1 && request.resource.data.year <= 12
+      && request.resource.data.subject is string && request.resource.data.subject.size() > 0 && request.resource.data.subject.size() <= 80
+      && request.resource.data.topic is string && request.resource.data.topic.size() <= 150;
+    allow delete: if owner(uid);
+    allow update: if false;
+   }

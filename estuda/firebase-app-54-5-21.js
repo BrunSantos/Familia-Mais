@@ -1,7 +1,7 @@
 import {familyRequest} from './family-catalog.js?v=66';
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {getAuth,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,sendPasswordResetEmail,updateProfile} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-import {getFirestore,doc,getDoc,setDoc,collection,getDocs,query,orderBy,limit,writeBatch,increment,serverTimestamp,onSnapshot,runTransaction,deleteDoc} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+import {getFirestore,addDoc,doc,getDoc,setDoc,collection,getDocs,query,orderBy,limit,writeBatch,increment,serverTimestamp,onSnapshot,runTransaction,deleteDoc} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 import {defaultAvatar,choices,avSvg,avHtml} from './firebase-avatar.js?v=54.5.15';
 const config={apiKey:'AIzaSyC5c1ZCjTLcNZeuSTcVdSulEuvgaRRecW4',authDomain:'estudamais-d319f.firebaseapp.com',projectId:'estudamais-d319f',storageBucket:'estudamais-d319f.firebasestorage.app',messagingSenderId:'534502111585',appId:'1:534502111585:web:7b90fe11254cc7fd81ed20'};
 const app=initializeApp(config),auth=getAuth(app),db=getFirestore(app);
@@ -768,6 +768,7 @@ async function epGuardianDashboard(){
  panel.querySelector('#epgchildren').innerHTML=rows.map(r=>'<div class="epgchild"><h3>'+esc(r.name)+' · '+esc(r.year)+'</h3><p>'+r.completed+' fichas realizadas · '+r.points.toLocaleString('pt-PT')+' pontos · Média '+(r.avg===null?'—':r.avg+'%')+'</p><p class="epgmuted">Última ficha: '+(r.items.length?esc(epGuardianDate(r.items[0].date)):'—')+'</p><button type="button" data-epgchild="'+esc(r.id)+'">Ver resultados e evolução</button></div>').join('')||'<p class="epgmuted">Digitaliza o QR do aluno e envia um pedido. O aluno poderá autorizar na sua conta.</p>';
  panel.querySelectorAll('[data-epgchild]').forEach(b=>b.onclick=()=>epFamilyReport(b.dataset.epgchild));
  if(linkError||errors.length){const warning=el('p',{class:'epgerror',role:'alert'});warning.style='background:#fff1f1;color:#8a2020;padding:12px;border-radius:10px;white-space:pre-wrap';warning.textContent=[linkError?'Erro ao carregar associações: '+authError(linkError):'',...errors].filter(Boolean).join('\n');panel.appendChild(warning)}
+ void epMountPhotos();
 }
 
 
@@ -801,7 +802,7 @@ async function epAdminPanel(){
 }
 epAdminBtn.onclick=epAdminPanel;
 
-async function initSession(u){if(u&&user&&u.uid!==user.uid){location.replace(new URL('./',import.meta.url).href);return}epStopFamilyNotifications();epAdminEnabled=false;epAdminBtn.hidden=true;user=u;profile=null;history=[];stopClock();started=0;recorded=false;if(!u){document.body.classList.remove('epguardian-mode');updateBar();authView();return}try{profile=await ensureProfile(u);updateBar();await epAdminCheck();epStartFamilyNotifications();if(epIsGuardian()){const root=new URL('./',import.meta.url);if(location.pathname!==root.pathname){location.replace(root.href);return}hide();await epGuardianDashboard();return}document.body.classList.remove('epguardian-mode');await loadHistory();hide();if(!isQuiz){epLockCompletedMenu();epBulkUnlockMenu();}if(isQuiz)await checkDailyLock();if(!epEnforceGrade())return;if(!dailyLocked)startClock();welcomeUser();loadRanking()}catch(e){show('<p>Não foi possível carregar o perfil: '+esc(authError(e))+'</p><div class="epactions"><button class="epbtn" id="epretry">Tentar novamente</button><button class="epbtn" id="epsignout">Sair</button></div>','Erro de ligação');document.getElementById('epretry').onclick=()=>location.reload();document.getElementById('epsignout').onclick=()=>signOut(auth)}}
+async function initSession(u){if(u&&user&&u.uid!==user.uid){location.replace(new URL('./',import.meta.url).href);return}epStopFamilyNotifications();epAdminEnabled=false;epAdminBtn.hidden=true;user=u;profile=null;history=[];stopClock();started=0;recorded=false;if(!u){epPhotoModule?.mountPhotoWorksheets(null,null);document.body.classList.remove('epguardian-mode');updateBar();authView();return}try{profile=await ensureProfile(u);updateBar();await epAdminCheck();epStartFamilyNotifications();if(epIsGuardian()){const root=new URL('./',import.meta.url);if(location.pathname!==root.pathname){location.replace(root.href);return}hide();await epGuardianDashboard();return}document.body.classList.remove('epguardian-mode');await loadHistory();hide();if(!isQuiz){epLockCompletedMenu();epBulkUnlockMenu();}if(isQuiz)await checkDailyLock();if(!epEnforceGrade())return;if(!dailyLocked)startClock();welcomeUser();loadRanking();if(!isQuiz)void epMountPhotos()}catch(e){show('<p>Não foi possível carregar o perfil: '+esc(authError(e))+'</p><div class="epactions"><button class="epbtn" id="epretry">Tentar novamente</button><button class="epbtn" id="epsignout">Sair</button></div>','Erro de ligação');document.getElementById('epretry').onclick=()=>location.reload();document.getElementById('epsignout').onclick=()=>signOut(auth)}}
 
 // v54.5.30 — Navegação adaptável: os botões originais mantêm os seus handlers.
 (function epSetupResponsiveNavigation(){
@@ -838,3 +839,21 @@ async function initSession(u){if(u&&user&&u.uid!==user.uid){location.replace(new
 })();
 
 onAuthStateChanged(auth,u=>{if(!creatingAccount)initSession(u)});
+
+// Photographs are optional: their load errors must never block authentication.
+let epPhotoModule;
+async function epMountPhotos(){
+ const root=new URL('./',import.meta.url),account=user?.uid;
+ if(!account||![root.pathname,new URL('index.html',root).pathname].includes(location.pathname))return;
+ try{
+  epPhotoModule ||= await import('./photo-worksheets.js?v=67-ai');
+  if(user?.uid!==account)return;
+  epPhotoModule.mountPhotoWorksheets({db,doc,getDoc,setDoc,addDoc,deleteDoc,collection,getDocs,serverTimestamp,runTransaction,refresh:async()=>{await loadHistory();updateBar();loadRanking()}},{user,profile});
+ }catch(error){
+  console.warn('Estuda+ fotografias indisponíveis:',error);
+  if(user?.uid!==account)return;
+  let box=document.getElementById('ep-photo-error');
+  if(!box){box=el('section',{id:'ep-photo-error',class:'panel',role:'status'});(document.getElementById('epguardianhome')||document.querySelector('main'))?.prepend(box);}
+  box.textContent='A área de fotografias não conseguiu carregar. As restantes funcionalidades continuam disponíveis. Atualiza a página para tentar novamente.';
+ }
+}
